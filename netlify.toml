@@ -1,0 +1,3 @@
+[build]
+  command = "npm --workspace @antika/shared run build && npm --workspace @antika/web run build"
+  publish = "apps/web/dist"
