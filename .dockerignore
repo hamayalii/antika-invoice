@@ -1,0 +1,13 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.env
+.env.*
+!.env.example
+!.env.*.example
+backups
+tests/e2e/__screenshots__
+playwright-report
+test-results
+*.log

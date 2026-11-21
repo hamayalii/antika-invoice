@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  staff
+}
+
+enum Lang {
+  ku
+  ar
+}
+
+enum DigitsMode {
+  eastern
+  latin
+}
+
+enum PaymentMethod {
+  cash
+  bank_transfer
+  cheque
+}
+
+enum DocumentStatus {
+  DRAFT
+  ISSUED
+  CANCELLED
+}
+
+model User {
+  id                 Int       @id @default(autoincrement())
+  username           String    @unique
+  passwordHash       String    @map("password_hash")
+  fullName           String    @default("") @map("full_name")
+  role               Role      @default(staff)
+  mustChangePassword Boolean   @default(true) @map("must_change_password")
+  active             Boolean   @default(true)
+  createdAt          DateTime  @default(now()) @map("created_at")
+  invoices           Invoice[] @relation("InvoiceCreatedBy")
+  vouchers           Voucher[] @relation("VoucherCreatedBy")
+  auditLogs          AuditLog[]
+
+  @@map("users")
+}
+
+model Customer {
+  id        Int       @id @default(autoincrement())
+  name      String
+  phone     String    @default("")
+  address   String    @default("")
+  createdAt DateTime  @default(now()) @map("created_at")
+  invoices  Invoice[]
+
+  @@index([name])
+  @@map("customers")
+}
+
+model Invoice {
+  id              Int           @id @default(autoincrement())
+  number          Int           @unique
+  date            DateTime      @db.Date
+  customerId      Int?          @map("customer_id")
+  customerName    String        @default("") @map("customer_name")
+  customerPhone   String        @default("") @map("customer_phone")
+  customerAddress String        @default("") @map("customer_address")
+  lang            Lang          @default(ku)
+  digitsMode      DigitsMode    @default(eastern) @map("digits_mode")
+  itemInfo        String        @default("") @map("item_info") @db.Text
+  materialsText   String        @default("") @map("materials_text") @db.Text
+  specialOffer    String        @default("") @map("special_offer") @db.Text
+  advancePercent  Int           @default(60) @map("advance_percent")
+  finalPercent    Int           @default(40) @map("final_percent")
+  subtotal        BigInt        @default(0)
+  total           BigInt        @default(0)
+  advanceAmount   BigInt        @default(0) @map("advance_amount")
+  finalAmount     BigInt        @default(0) @map("final_amount")
+  createdBy       Int           @map("created_by")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  deletedAt       DateTime?     @map("deleted_at")
+  verifyCode      String        @unique @map("verify_code")
+  status          DocumentStatus @default(DRAFT)
+  issuedAt        DateTime?     @map("issued_at")
+  cancelledAt     DateTime?     @map("cancelled_at")
+  cancelReason    String        @default("") @map("cancel_reason") @db.Text
+  integrityHash   String?       @map("integrity_hash") @db.Text
+  verifyCount     Int           @default(0) @map("verify_count")
+  lastVerifiedAt  DateTime?     @map("last_verified_at")
+  watermarkEnabled Boolean?     @map("watermark_enabled")
+  customer        Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  creator         User          @relation("InvoiceCreatedBy", fields: [createdBy], references: [id])
+  items           InvoiceItem[]
+  vouchers        Voucher[]
+
+  @@index([date])
+  @@index([customerName])
+  @@index([deletedAt])
+  @@index([status])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id        Int     @id @default(autoincrement())
+  invoiceId Int     @map("invoice_id")
+  position  Int
+  name      String  @default("")
+  code      String  @default("")
+  qty       Int     @default(0)
+  price     BigInt  @default(0)
+  discount  BigInt  @default(0)
+  notes     String  @default("")
+  lineTotal BigInt  @default(0) @map("line_total")
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+model Voucher {
+  id             Int           @id @default(autoincrement())
+  number         Int           @unique
+  date           DateTime      @db.Date
+  invoiceId      Int?          @map("invoice_id")
+  receivedFrom   String        @default("") @map("received_from")
+  amount         BigInt        @default(0)
+  amountWords    String        @default("") @map("amount_words") @db.Text
+  paymentFor     String        @default("") @map("payment_for")
+  paymentMethod  PaymentMethod @default(cash) @map("payment_method")
+  preparedBy     String        @default("") @map("prepared_by")
+  receivedByName String        @default("") @map("received_by_name")
+  approvedBy     String        @default("") @map("approved_by")
+  lang           Lang          @default(ar)
+  digitsMode     DigitsMode    @default(latin) @map("digits_mode")
+  createdBy      Int           @map("created_by")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  deletedAt      DateTime?     @map("deleted_at")
+  verifyCode     String        @unique @map("verify_code")
+  status         DocumentStatus @default(DRAFT)
+  issuedAt       DateTime?     @map("issued_at")
+  cancelledAt    DateTime?     @map("cancelled_at")
+  cancelReason   String        @default("") @map("cancel_reason") @db.Text
+  integrityHash  String?       @map("integrity_hash") @db.Text
+  verifyCount    Int           @default(0) @map("verify_count")
+  lastVerifiedAt DateTime?     @map("last_verified_at")
+  watermarkEnabled Boolean?    @map("watermark_enabled")
+  invoice        Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  creator        User          @relation("VoucherCreatedBy", fields: [createdBy], references: [id])
+
+  @@index([date])
+  @@index([receivedFrom])
+  @@index([deletedAt])
+  @@index([status])
+  @@map("vouchers")
+}
+
+model Counter {
+  name  String @id
+  value Int    @default(0)
+
+  @@map("counters")
+}
+
+model Setting {
+  key   String @id
+  value Json
+
+  @@map("settings")
+}
+
+model AuditLog {
+  id       Int      @id @default(autoincrement())
+  userId   Int?     @map("user_id")
+  action   String
+  entity   String
+  entityId String?  @map("entity_id")
+  at       DateTime @default(now())
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([at])
+  @@map("audit_log")
+}

@@ -1,0 +1,517 @@
+.voucher-sheet {
+  --vch-blue: #1e56a0;
+  --vch-orange: #ff5a00;
+  --vch-beige: rgba(248, 221, 184, 0.85);
+  --vch-line: #9a9a9a;
+  --vch-ink: #111111;
+
+  position: relative;
+  width: 210mm;
+  height: 148mm;
+  /* Design padding 6 mm; the print setting can only push content further in. */
+  padding: max(6mm, var(--print-safe-margin, 5mm));
+  box-sizing: border-box;
+  background: #ffffff;
+  color: var(--vch-ink);
+  font-family: "Arkan", "Inter", "Noto Naskh Arabic", Tahoma, sans-serif;
+  font-size: 3.35mm;
+  line-height: 1.45;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  direction: rtl;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.voucher-sheet *,
+.voucher-sheet *::before,
+.voucher-sheet *::after {
+  box-sizing: border-box;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Neutralise the app-shell `.label` component inside the printed sheet. */
+.voucher-sheet .label {
+  display: revert;
+  margin-bottom: 0;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+  color: inherit;
+}
+
+.vch-header,
+.vch-topline,
+.vch-words,
+.vch-mid,
+.vch-signatures,
+.vch-bottom,
+.vch-footer,
+.vch-rule {
+  position: relative;
+  z-index: 1;
+}
+
+.vch-bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+}
+
+/* The footer keeps its full size: no flex shrink anywhere in the sheet. */
+.vch-topline,
+.vch-words,
+.vch-mid,
+.vch-signatures,
+.vch-bottom,
+.vch-footer,
+.vch-rule {
+  flex: 0 0 auto;
+}
+
+/* Microtext is an overlay so it never steals height from the original layout. */
+.voucher-sheet .doc-microtext {
+  position: absolute;
+  left: 6mm;
+  right: 6mm;
+  height: 1.7mm;
+  line-height: 1.7mm;
+  font-size: 1.25mm;
+}
+
+.vch-microtext-top {
+  top: 31.2mm;
+}
+
+/* Anchored to .vch-bottom: sits in the free gap above the authenticity strip. */
+.vch-microtext-bottom {
+  top: -2.3mm;
+}
+
+.vch-header {
+  height: 25mm;
+  flex: 0 0 auto;
+  border: 1.15mm solid var(--vch-blue);
+  border-radius: 2.6mm;
+  padding: 1.8mm 4mm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4mm;
+  background: transparent;
+}
+
+.vch-brand {
+  display: flex;
+  align-items: center;
+  gap: 2.6mm;
+  flex: 0 0 auto;
+}
+
+.vch-logo {
+  width: 17mm;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.vch-wordmark {
+  line-height: 1;
+  font-family: "Arkan", "Inter", Tahoma, sans-serif;
+}
+
+.vch-wordmark .name {
+  font-size: 6.4mm;
+  font-weight: 900;
+  letter-spacing: 0.1mm;
+  color: #3c3c3c;
+  white-space: nowrap;
+}
+
+.vch-wordmark .name .a {
+  color: var(--vch-orange);
+}
+
+.vch-wordmark .factory {
+  margin-top: 1mm;
+  font-size: 2.55mm;
+  font-weight: 900;
+  letter-spacing: 1.55mm;
+  color: var(--vch-orange);
+  white-space: nowrap;
+}
+
+.vch-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2mm;
+  min-width: 0;
+  flex: 1;
+}
+
+.vch-title .main {
+  color: var(--vch-blue);
+  font-size: 4.2mm;
+  font-weight: 900;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.vch-title .rule {
+  width: 46mm;
+  height: 0.55mm;
+  border-radius: 0.3mm;
+  background: var(--vch-orange);
+}
+
+.vch-meta {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2mm;
+  width: 47mm;
+}
+
+.vch-meta .meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2mm;
+  border: 0.28mm solid #6f6f6f;
+  border-inline-start: 1mm solid var(--vch-orange);
+  border-radius: 0.8mm;
+  background: #fdf7ee;
+  padding: 0.7mm 1.6mm;
+  min-height: 5.6mm;
+}
+
+.vch-meta .label {
+  font-size: 2.75mm;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.vch-meta .value {
+  font-size: 3.1mm;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.vch-meta .value.number {
+  color: var(--vch-blue);
+  font-size: 3.5mm;
+}
+
+.vch-topline {
+  margin-top: 2.6mm;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 62mm;
+  border: 0.32mm solid #6f6f6f;
+  background: transparent;
+}
+
+.vch-field {
+  min-height: 13.5mm;
+  display: flex;
+  align-items: center;
+  gap: 2.2mm;
+  padding: 1.6mm 2.6mm;
+  overflow: hidden;
+}
+
+.vch-field + .vch-field {
+  border-inline-start: 0.32mm solid #6f6f6f;
+}
+
+.vch-field .label {
+  font-size: 3mm;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.vch-field .value {
+  font-size: 3.5mm;
+  font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  unicode-bidi: plaintext;
+}
+
+.vch-field.amount {
+  background: #fdf7ee;
+}
+
+.vch-field .amount-value {
+  margin-inline-start: auto;
+  border: 0.3mm solid #4b4b4b;
+  border-radius: 0.7mm;
+  background: #fff;
+  padding: 1mm 2.4mm;
+  font-size: 4.2mm;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.vch-words {
+  margin-top: 2mm;
+  display: grid;
+  grid-template-columns: 47mm minmax(0, 1fr);
+  border: 0.32mm solid #6f6f6f;
+  min-height: 10.5mm;
+  background: transparent;
+}
+
+.vch-words .label {
+  background: var(--vch-beige);
+  border-inline-end: 0.32mm solid #6f6f6f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.4mm 1.8mm;
+  font-size: 2.9mm;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.vch-words .value {
+  padding: 1.8mm 3mm;
+  display: flex;
+  align-items: center;
+  font-size: 3.55mm;
+  font-weight: 700;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  unicode-bidi: plaintext;
+}
+
+.vch-mid {
+  margin-top: 2mm;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 61mm;
+  gap: 2.5mm;
+  min-height: 15.5mm;
+}
+
+.vch-payfor,
+.vch-method {
+  border: 0.32mm solid #6f6f6f;
+  background: transparent;
+  padding: 1.2mm 2.4mm;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8mm;
+}
+
+.vch-payfor .label,
+.vch-method .label {
+  font-size: 2.75mm;
+  font-weight: 800;
+  color: #4a4a4a;
+}
+
+.vch-payfor .value {
+  font-size: 3.4mm;
+  font-weight: 600;
+  line-height: 1.55;
+  unicode-bidi: plaintext;
+  overflow-wrap: anywhere;
+}
+
+.vch-method .methods {
+  display: flex;
+  align-items: center;
+  column-gap: 2.8mm;
+  row-gap: 1.2mm;
+  flex-wrap: wrap;
+  margin-top: 0.4mm;
+}
+
+.vch-method .method {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.2mm;
+  white-space: nowrap;
+}
+
+.vch-method .box {
+  width: 3.3mm;
+  height: 3.3mm;
+  border: 0.3mm solid #4b4b4b;
+  border-radius: 0.4mm;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.7mm;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--vch-blue);
+}
+
+.vch-method .box.checked {
+  border-color: var(--vch-blue);
+  background: #eef4fb;
+}
+
+.vch-method .box-check {
+  width: 2.5mm;
+  height: 2.5mm;
+  display: block;
+}
+
+.vch-method .text {
+  font-size: 2.7mm;
+  font-weight: 700;
+}
+
+.vch-signatures {
+  margin-top: 2.4mm;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4mm;
+}
+
+.vch-sign {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1mm;
+  text-align: center;
+}
+
+.vch-sign .role {
+  font-size: 2.9mm;
+  font-weight: 800;
+  color: #3f3f3f;
+}
+
+.vch-sign .name-line {
+  width: 100%;
+  min-height: 5.2mm;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-bottom: 0.3mm dashed #8a8a8a;
+  padding-bottom: 0.7mm;
+  font-size: 3.1mm;
+  font-weight: 700;
+  color: #1c1c1c;
+}
+
+.vch-sign .sig-label {
+  font-size: 2.5mm;
+  font-weight: 600;
+  color: #6b6b6b;
+}
+
+.vch-footer {
+  margin-top: 0;
+  height: 18.5mm;
+  border: 0.3mm solid #6e6e6e;
+  padding: 2mm 3.6mm;
+  display: flex;
+  align-items: center;
+  gap: 4mm;
+  background: transparent;
+}
+
+.vch-footer .circle {
+  width: 8.4mm;
+  height: 8.4mm;
+  border-radius: 50%;
+  background: var(--vch-blue);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.vch-footer .circle svg {
+  width: 4.2mm;
+  height: 4.2mm;
+  stroke-width: 2.2;
+}
+
+.vch-footer .address-block {
+  display: flex;
+  align-items: center;
+  gap: 2.4mm;
+  flex: 1;
+  min-width: 0;
+}
+
+.vch-footer .address-lines {
+  font-size: 2.65mm;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: right;
+  unicode-bidi: plaintext;
+}
+
+.vch-footer .address-lines span {
+  display: block;
+}
+
+.vch-footer .address-lines .label {
+  font-weight: 900;
+}
+
+.vch-footer .divider {
+  width: 0.4mm;
+  height: 11mm;
+  background: var(--vch-orange);
+  flex: 0 0 auto;
+}
+
+.vch-footer .phones {
+  display: flex;
+  align-items: center;
+  gap: 2.2mm;
+  width: 43mm;
+  flex: 0 0 auto;
+}
+
+.vch-footer .phone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25mm;
+  font-size: 2.7mm;
+  font-weight: 700;
+  line-height: 1.3;
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+
+.vch-rule {
+  margin-top: 1mm;
+}
+
+.vch-rule .blue {
+  height: 1.45mm;
+  background: var(--vch-blue);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 3.8% 100%, 0 32%);
+}
+
+.vch-rule .orange {
+  height: 0.45mm;
+  background: var(--vch-orange);
+  margin-top: 0.4mm;
+}
+
+.voucher-sheet .nowrap {
+  white-space: nowrap;
+}
+
+@media print {
+  .voucher-sheet {
+    box-shadow: none;
+  }
+}

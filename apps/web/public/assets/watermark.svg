@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300">
+  <g transform="translate(20 90) scale(0.778)">
+    <rect width="154" height="87" fill="none" stroke="#0B0B0B" stroke-width="6.5"/>
+    <polygon points="25,13 106,13 25,60" fill="#0B0B0B"/>
+    <polygon points="130,16 83,42.5 130,69" fill="#0B0B0B"/>
+    <polygon points="69,49 28,72.5 107,72.5" fill="#0B0B0B"/>
+  </g>
+  <text x="165" y="186" font-family="Arkan Favorit, Arial, sans-serif" font-size="92" font-weight="800" fill="#3B3B3B" letter-spacing="1">ANTIKA</text>
+  <text x="165" y="240" font-family="Arkan Favorit, Arial, sans-serif" font-size="54" font-weight="800" fill="#FF5A00" letter-spacing="8">FACTORY</text>
+</svg>

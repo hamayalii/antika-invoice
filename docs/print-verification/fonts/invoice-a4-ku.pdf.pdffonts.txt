@@ -1,0 +1,12 @@
+name                                 type              encoding         emb sub uni object ID
+------------------------------------ ----------------- ---------------- --- --- --- ---------
+AAAAAA+ArkanABCFavorit-Bold          CID TrueType      Identity-H       yes yes yes     10  0
+AAAAAA+ArkanABCFavorit-Bold          CID TrueType      Identity-H       yes yes yes     15  0
+AAAAAA+ArkanABCFavorit-Bold          CID TrueType      Identity-H       yes yes yes     19  0
+CAAAAA+ArkanABCFavorit-Medium        CID TrueType      Identity-H       yes yes yes     22  0
+DAAAAA+Inter-Thin                    Type 3            Custom           yes yes yes     23  0
+EAAAAA+ArkanABCFavorit-Medium        CID TrueType      Identity-H       yes yes yes     24  0
+FAAAAA+Inter-Thin                    Type 3            Custom           yes yes yes     25  0
+GAAAAA+ArkanABCFavorit-Medium        CID TrueType      Identity-H       yes yes yes     27  0
+AAAAAA+ArkanABCFavorit-Bold          CID TrueType      Identity-H       yes yes yes     11  0
+BAAAAA+ArkanABCFavorit-Medium        CID TrueType      Identity-H       yes yes yes     16  0

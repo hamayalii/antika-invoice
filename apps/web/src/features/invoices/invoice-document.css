@@ -1,0 +1,476 @@
+.invoice-sheet {
+  --inv-blue: #1e56a0;
+  position: relative;
+  --inv-orange: #ff5a00;
+  --inv-beige: rgba(248, 221, 184, 0.85);
+  --inv-line: #9a9a9a;
+  --inv-ink: #111111;
+
+  width: 210mm;
+  height: 297mm;
+  /* Design padding 10 mm; the print setting can only push content further in. */
+  padding: max(10mm, var(--print-safe-margin, 5mm));
+  box-sizing: border-box;
+  background: #ffffff;
+  color: var(--inv-ink);
+  font-family: "Arkan", "Inter", "Noto Naskh Arabic", Tahoma, sans-serif;
+  font-size: 3.7mm;
+  line-height: 1.55;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  direction: rtl;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.invoice-sheet *,
+.invoice-sheet *::before,
+.invoice-sheet *::after {
+  box-sizing: border-box;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/*
+ * The app shell styles `.label` globally (display:block, margin, font size).
+ * Inside the print sheet the label class is only a typographic marker, so
+ * reset it to the element's native display (inline span / table cell / block
+ * div) and let the document rules below control type.
+ */
+.invoice-sheet .label {
+  display: revert;
+  margin-bottom: 0;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+  color: inherit;
+}
+
+.inv-header,
+.inv-meta,
+.inv-customer,
+.inv-table,
+.inv-info,
+.inv-totals,
+.inv-footer-wrap {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+}
+
+.inv-header-band {
+  height: 31mm;
+  border: 1.35mm solid var(--inv-blue);
+  border-radius: 2.8mm;
+  padding: 2mm 4.5mm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5mm;
+  background: transparent;
+}
+
+.inv-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 3.2mm;
+  flex: 0 0 auto;
+}
+
+.inv-logo-img {
+  width: 20mm;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.inv-wordmark {
+  line-height: 1;
+  font-family: "Arkan", "Inter", Tahoma, sans-serif;
+}
+
+.inv-wordmark .name {
+  font-size: 8.4mm;
+  font-weight: 900;
+  letter-spacing: 0.1mm;
+  color: #3c3c3c;
+  white-space: nowrap;
+}
+
+.inv-wordmark .name .a {
+  color: var(--inv-orange);
+}
+
+.inv-wordmark .factory {
+  margin-top: 1.1mm;
+  font-size: 3.25mm;
+  font-weight: 900;
+  letter-spacing: 1.95mm;
+  color: var(--inv-orange);
+  white-space: nowrap;
+}
+
+.inv-brand-calligraphy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6mm;
+  min-width: 60mm;
+}
+
+.inv-brand-calligraphy img {
+  width: 55mm;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.inv-brand-calligraphy .brand-name {
+  display: block;
+  font-family: "Arkan", "Inter", Tahoma, sans-serif;
+  font-size: 13.5mm;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--inv-orange);
+  white-space: nowrap;
+}
+
+.inv-brand-calligraphy .tagline {
+  color: var(--inv-orange);
+  font-size: 3.35mm;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.inv-header-line {
+  height: 0.7mm;
+  background: var(--inv-orange);
+  margin: 0.65mm 1.5mm 0;
+  border-radius: 0.4mm;
+}
+
+.inv-meta {
+  margin-top: 2.5mm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4mm;
+  min-height: 8.4mm;
+}
+
+.inv-date {
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+  font-size: 3.8mm;
+  font-weight: 600;
+}
+
+.inv-date .label {
+  font-weight: 800;
+}
+
+.inv-date .value {
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.inv-number-box {
+  display: flex;
+  align-items: center;
+  gap: 2mm;
+  border: 0.3mm solid #4b4b4b;
+  border-radius: 0.9mm;
+  background: #fdf1e0;
+  padding: 1.15mm 3mm;
+  min-width: 39mm;
+  font-size: 3.55mm;
+  font-weight: 700;
+  border-inline-start: 1.2mm solid var(--inv-orange);
+}
+
+.inv-number-box .value {
+  margin-inline-start: auto;
+  font-weight: 800;
+}
+
+.inv-customer {
+  margin-top: 3mm;
+  display: grid;
+  grid-template-columns: 40% 30% 30%;
+  border: 0.32mm solid #6f6f6f;
+  background: transparent;
+}
+
+.inv-customer .cell {
+  min-height: 12mm;
+  padding: 1.6mm 2.4mm;
+  display: flex;
+  align-items: center;
+  gap: 1.8mm;
+  font-size: 3.7mm;
+  overflow: hidden;
+}
+
+.inv-customer .cell + .cell {
+  border-inline-start: 0.32mm solid #6f6f6f;
+}
+
+.inv-customer .label {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.inv-customer .value {
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  unicode-bidi: plaintext;
+}
+
+.inv-table {
+  margin-top: 3.6mm;
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.inv-table th {
+  height: 8.8mm;
+  background: var(--inv-beige);
+  border: 0.25mm solid var(--inv-line);
+  text-align: center;
+  vertical-align: middle;
+  font-size: 3.65mm;
+  font-weight: 800;
+  padding: 0.6mm 1mm;
+  white-space: nowrap;
+}
+
+.inv-table td {
+  height: 16mm;
+  border: 0.25mm solid var(--inv-line);
+  vertical-align: middle;
+  text-align: center;
+  padding: 1.2mm 1.6mm;
+  font-size: 3.6mm;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  unicode-bidi: plaintext;
+}
+
+.inv-table td.cell-name,
+.inv-table td.cell-notes {
+  text-align: right;
+}
+
+.inv-table td.cell-total {
+  font-weight: 700;
+}
+
+.inv-table thead {
+  display: table-header-group;
+}
+
+.inv-table tr {
+  break-inside: avoid;
+}
+
+.inv-info {
+  margin-top: 4.6mm;
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.inv-info td {
+  border: 0.3mm solid #7c7c7c;
+  vertical-align: middle;
+}
+
+.inv-info td.label {
+  width: 17%;
+  background: var(--inv-beige);
+  text-align: center;
+  font-size: 3.75mm;
+  font-weight: 800;
+  padding: 2mm;
+  line-height: 1.55;
+}
+
+.inv-info td.content {
+  width: 83%;
+  padding: 3.5mm 5mm;
+  text-align: right;
+  vertical-align: middle;
+  white-space: pre-wrap;
+  unicode-bidi: plaintext;
+  font-size: 3.9mm;
+  font-weight: 500;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.inv-info tr.row-info td {
+  height: 55mm;
+}
+
+.inv-info tr.row-materials td {
+  height: 28mm;
+}
+
+/* Reduced only to make room for the authenticity strip; the footer is untouched. */
+.inv-info tr.row-offer td {
+  height: 20mm;
+}
+
+.inv-totals {
+  margin-top: 6mm;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4mm;
+  align-items: center;
+}
+
+.inv-total-item {
+  display: flex;
+  align-items: center;
+  gap: 2.5mm;
+  min-width: 0;
+}
+
+.inv-total-item .label {
+  font-size: 3.45mm;
+  font-weight: 800;
+  line-height: 1.55;
+  text-align: right;
+}
+
+.inv-total-item .box {
+  width: 31mm;
+  height: 6.6mm;
+  flex: 0 0 auto;
+  border: 0.35mm solid #1b1b1b;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.4mm;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.inv-footer-wrap {
+  margin-top: auto;
+  padding-top: 5.5mm;
+  break-inside: avoid;
+}
+
+.inv-footer {
+  height: 31.5mm;
+  border: 0.3mm solid #6e6e6e;
+  padding: 2.6mm 4mm;
+  display: flex;
+  align-items: center;
+  gap: 4mm;
+  background: transparent;
+}
+
+.inv-footer .circle {
+  width: 9.2mm;
+  height: 9.2mm;
+  border-radius: 50%;
+  background: var(--inv-blue);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.inv-footer .circle svg {
+  width: 4.6mm;
+  height: 4.6mm;
+  stroke-width: 2.2;
+}
+
+.inv-footer .phones {
+  display: flex;
+  align-items: center;
+  gap: 2.4mm;
+  width: 48mm;
+  flex: 0 0 auto;
+}
+
+.inv-footer .phone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55mm;
+  font-size: 3.25mm;
+  font-weight: 700;
+  line-height: 1.35;
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+
+.inv-footer .divider {
+  width: 0.42mm;
+  height: 17mm;
+  background: var(--inv-orange);
+  flex: 0 0 auto;
+}
+
+.inv-footer .address-block {
+  display: flex;
+  align-items: center;
+  gap: 2.6mm;
+  flex: 1;
+  min-width: 0;
+}
+
+.inv-footer .address-lines {
+  font-size: 3.05mm;
+  font-weight: 600;
+  line-height: 1.55;
+  text-align: right;
+  unicode-bidi: plaintext;
+}
+
+.inv-footer .address-lines .label {
+  font-weight: 900;
+}
+
+.inv-rule {
+  margin-top: 1.5mm;
+}
+
+.inv-rule .blue {
+  height: 1.75mm;
+  background: var(--inv-blue);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 3.8% 100%, 0 32%);
+}
+
+.inv-rule .orange {
+  height: 0.55mm;
+  background: var(--inv-orange);
+  margin-top: 0.45mm;
+}
+
+.invoice-sheet .nowrap {
+  white-space: nowrap;
+}
+
+.invoice-sheet .muted {
+  color: #6b6b6b;
+}
+
+@media print {
+  .invoice-sheet {
+    box-shadow: none;
+  }
+}

@@ -1,0 +1,90 @@
+/*
+ * All font files are bundled locally. No CDN and no runtime network font request.
+ * The supplied Arkan files are kept verbatim under /fonts/arkan/ (original names),
+ * next to full-glyph WOFF2 copies compressed without subsetting.
+ * ۇ (U+06C7) is not present in the supplied Arkan master; see README.
+ */
+@font-face {
+  font-family: "Arkan";
+  src:
+    local("Arkan ABC Favorit Light"),
+    local("Arkan Light"),
+    local("Arkan"),
+    url("/fonts/arkan/Arkan ABC Favorit Light-s.p.7dfab851.woff2") format("woff2"),
+    url("/fonts/arkan/Arkan ABC Favorit Light-s.p.7dfab851.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Arkan";
+  src:
+    local("Arkan ABC Favorit Book"),
+    local("Arkan Book"),
+    local("Arkan"),
+    url("/fonts/arkan/Arkan ABC Favorit Book-s.p.85946152.woff2") format("woff2"),
+    url("/fonts/arkan/Arkan ABC Favorit Book-s.p.85946152.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Arkan";
+  src:
+    local("Arkan ABC Favorit Regular"),
+    local("Arkan Regular"),
+    local("Arkan"),
+    url("/fonts/arkan/Arkan ABC Favorit Regular-s.p.13709ce1.woff2") format("woff2"),
+    url("/fonts/arkan/Arkan ABC Favorit Regular-s.p.13709ce1.ttf") format("truetype");
+  font-weight: 450;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Arkan";
+  src:
+    local("Arkan ABC Favorit Medium"),
+    local("Arkan Medium"),
+    local("Arkan"),
+    url("/fonts/arkan/Arkan ABC Favorit Medium-s.p.8ec3f1e7.woff2") format("woff2"),
+    url("/fonts/arkan/Arkan ABC Favorit Medium-s.p.8ec3f1e7.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Arkan";
+  src:
+    local("Arkan ABC Favorit Bold"),
+    local("Arkan Bold"),
+    local("Arkan"),
+    url("/fonts/arkan/Arkan ABC Favorit Bold-s.p.62621432.woff2") format("woff2"),
+    url("/fonts/arkan/Arkan ABC Favorit Bold-s.p.62621432.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
+
+/* Latin only: this range can never match an Arabic-script codepoint. */
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/inter-latin-ext-wght-normal.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}

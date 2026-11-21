@@ -1,0 +1,53 @@
+{
+  "name": "antika-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Antika Factory documents: invoices (وەسڵ) and receipt vouchers (سند قبض)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "predev": "npm run build -w @antika/shared",
+    "dev": "concurrently -n api,web,shared -c blue,magenta,yellow \"npm run dev -w @antika/api\" \"npm run dev -w @antika/web\" \"npm run dev -w @antika/shared\"",
+    "build": "npm run build -w @antika/shared && npm run build -w @antika/api && npm run build -w @antika/web",
+    "typecheck": "npm run typecheck -w @antika/shared && npm run typecheck -w @antika/api && npm run typecheck -w @antika/web",
+    "test": "npm run build -w @antika/shared && vitest run",
+    "test:watch": "npm run build -w @antika/shared && vitest",
+    "db:generate": "dotenv -e .env -- prisma generate --schema apps/api/prisma/schema.prisma",
+    "db:migrate": "dotenv -e .env -- prisma migrate dev --schema apps/api/prisma/schema.prisma",
+    "db:deploy": "dotenv -e .env -- prisma migrate deploy --schema apps/api/prisma/schema.prisma",
+    "db:seed": "npm run build -w @antika/shared && dotenv -e .env -- tsx apps/api/prisma/seed.ts",
+    "db:studio": "dotenv -e .env -- prisma studio --schema apps/api/prisma/schema.prisma",
+    "db:reset": "dotenv -e .env -- prisma migrate reset --force --schema apps/api/prisma/schema.prisma && npm run db:seed",
+    "assets": "node scripts/generate-assets.mjs",
+    "e2e": "playwright test",
+    "e2e:shots": "playwright test tests/e2e/screenshots.spec.ts",
+    "verify:print": "playwright test tests/e2e/print-size.spec.ts"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^0.1.65",
+    "@playwright/test": "1.49.1",
+    "@types/node": "22.10.2",
+    "concurrently": "9.1.0",
+    "dotenv-cli": "7.4.4",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
+    "prisma": "6.1.0",
+    "tsx": "4.19.2",
+    "typescript": "5.7.2",
+    "vitest": "2.1.8"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "allowScripts": {
+    "@prisma/client@6.1.0": true,
+    "@prisma/engines@6.1.0": true,
+    "esbuild@0.23.1": true,
+    "esbuild@0.21.5": true,
+    "prisma@6.1.0": true,
+    "puppeteer@23.11.1": true,
+    "esbuild@0.24.0": true
+  }
+}
