@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, ApiError } from "./api";
+import { api, ApiError, setStoredToken } from "./api";
 import type { AuthResponse, AuthUser } from "./types";
 
 interface AuthContextValue {
@@ -27,7 +27,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         return await api.get<AuthResponse>("/auth/me");
       } catch (error) {
-        if (error instanceof ApiError && error.status === 401) return null;
+        if (error instanceof ApiError && error.status === 401) {
+          setStoredToken(null);
+          return null;
+        }
         throw error;
       }
     },
@@ -37,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const setUser = useCallback(
     (user: AuthUser | null) => {
+      if (!user) setStoredToken(null);
       queryClient.setQueryData<AuthResponse | null>(["auth", "me"], user ? { user } : null);
     },
     [queryClient],
@@ -44,13 +48,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     const result = await api.get<AuthResponse>("/auth/me").catch((error) => {
-      if (error instanceof ApiError && error.status === 401) return null;
+      if (error instanceof ApiError && error.status === 401) {
+        setStoredToken(null);
+        return null;
+      }
       throw error;
     });
     queryClient.setQueryData<AuthResponse | null>(["auth", "me"], result);
   }, [queryClient]);
 
   const logout = useCallback(async () => {
+    setStoredToken(null);
     await api.post("/auth/logout").catch(() => undefined);
     queryClient.setQueryData<AuthResponse | null>(["auth", "me"], null);
     queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== "auth" });

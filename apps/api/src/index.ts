@@ -5,8 +5,11 @@ import { closePdfRenderer, warmUpPdfRenderer } from "./services/pdf";
 
 const app = createApp();
 
-const server = app.listen(config.API_PORT, () => {
-  console.log(`[antika-api] listening on http://localhost:${config.API_PORT} (${config.NODE_ENV})`);
+const port = Number(process.env.PORT || config.PORT || config.API_PORT || 4000);
+const host = "0.0.0.0";
+
+const server = app.listen(port, host, () => {
+  console.log(`[antika-api] listening on http://${host}:${port} (${config.NODE_ENV})`);
   warmUpPdfRenderer();
 });
 

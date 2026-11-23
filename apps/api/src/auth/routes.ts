@@ -46,9 +46,10 @@ authRouter.post(
     if (!user || !valid || !user.active) {
       throw new HttpError(401, "INVALID_CREDENTIALS", "Invalid username or password");
     }
-    setAuthCookie(res, signToken(user.id));
+    const token = signToken(user.id);
+    setAuthCookie(res, token);
     await audit(user.id, "login", "user", user.id);
-    res.json({ user: publicUser(user) });
+    res.json({ user: publicUser(user), token });
   }),
 );
 
@@ -91,7 +92,8 @@ authRouter.post(
       },
     });
     await audit(user.id, "change_password", "user", user.id);
-    setAuthCookie(res, signToken(user.id));
-    res.json({ ok: true, user: publicUser({ ...user, mustChangePassword: false }) });
+    const token = signToken(user.id);
+    setAuthCookie(res, token);
+    res.json({ ok: true, user: publicUser({ ...user, mustChangePassword: false }), token });
   }),
 );

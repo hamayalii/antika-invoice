@@ -6,6 +6,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, ArrowLeft, LogIn, ShieldCheck } from "lucide-react";
 import { api } from "../lib/api";
+import { api, setStoredToken } from "../lib/api";
 import type { AuthResponse } from "../lib/types";
 import { useAuth } from "../lib/auth";
 import { useApiErrorMessage, useValidationMessage } from "../lib/i18nHooks";
@@ -43,6 +44,9 @@ export function LoginPage() {
     setServerError("");
     try {
       const result = await api.post<AuthResponse>("/auth/login", values);
+      if (result.token) {
+        setStoredToken(result.token);
+      }
       setUser(result.user);
       toast.success(t("auth.welcomeBack"));
       if (result.user.mustChangePassword) {

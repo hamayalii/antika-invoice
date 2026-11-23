@@ -36,20 +36,24 @@ export function verifyToken(token: string): TokenPayload {
   return { sub: decoded.sub };
 }
 
-const cookieOptions = {
-  httpOnly: true,
-  sameSite: "strict" as const,
-  secure: config.COOKIE_SECURE,
-  path: "/",
-};
+export function getCookieOptions() {
+  const sameSite = config.COOKIE_SAME_SITE;
+  const isSecure = sameSite === "none" ? true : config.COOKIE_SECURE;
+  return {
+    httpOnly: true,
+    sameSite,
+    secure: isSecure,
+    path: "/",
+  };
+}
 
 export function setAuthCookie(res: Response, token: string): void {
   res.cookie(config.cookieName, token, {
-    ...cookieOptions,
+    ...getCookieOptions(),
     maxAge: config.JWT_EXPIRES_DAYS * 24 * 60 * 60 * 1000,
   });
 }
 
 export function clearAuthCookie(res: Response): void {
-  res.clearCookie(config.cookieName, cookieOptions);
+  res.clearCookie(config.cookieName, getCookieOptions());
 }

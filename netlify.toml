@@ -1,3 +1,19 @@
+
 [build]
-  command = "npm --workspace @antika/shared run build && npm --workspace @antika/web run build"
+  command = "npm run build -w @antika/shared && npm run build -w @antika/web"
   publish = "apps/web/dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  VITE_API_URL = "https://antika-invoice-production.up.railway.app"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://antika-invoice-production.up.railway.app/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

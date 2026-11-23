@@ -27,26 +27,83 @@ export function createApp() {
       crossOriginResourcePolicy: { policy: "cross-origin" },
     }),
   );
+
+  const allowedOrigins = new Set<string>();
+  const registerOrigins = (raw?: string) => {
+    if (!raw) return;
+    for (const item of raw.split(",")) {
+      const normalized = item.trim().replace(/\/+$/, "");
+      if (normalized) allowedOrigins.add(normalized);
+    }
+  };
+
+  registerOrigins(config.APP_ORIGIN);
+  registerOrigins(config.CORS_ALLOWED_ORIGINS);
+  registerOrigins("https://antika-invoice.netlify.app");
+  registerOrigins("http://localhost:5173");
+  registerOrigins("http://127.0.0.1:5173");
+  registerOrigins("http://localhost:4173");
+  registerOrigins("http://127.0.0.1:4173");
+  registerOrigins("http://localhost:3000");
+
   app.use(
     cors({
       origin(origin, callback) {
-        if (!origin || origin === config.APP_ORIGIN) return callback(null, true);
+        if (!origin) return callback(null, true);
+        const normalized = origin.trim().replace(/\/+$/, "");
+        if (allowedOrigins.has(normalized)) {
+          return callback(null, true);
+        }
+        if (/^https:\/\/[a-z0-9-]+--antika-invoice\.netlify\.app$/.test(normalized)) {
+          return callback(null, true);
+        }
         callback(null, false);
       },
       credentials: true,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Accept",
+        "Origin",
+      ],
+      maxAge: 86400,
     }),
   );
   app.use(express.json({ limit: "2mb" }));
   app.use(cookieParser());
 
-  app.get("/api/health", async (_req, res) => {
+  const healthHandler = async (_req: express.Request, res: express.Response) => {
     try {
       await prisma.$queryRaw`SELECT 1`;
-      res.json({ status: "ok", time: new Date().toISOString(), version: "1.0.0" });
+      res.json({
+        status: "ok",
+        time: new Date().toISOString(),
+        version: "1.0.0",
+        services: { database: "connected" },
+      });
     } catch {
-      res.status(503).json({ status: "unavailable", time: new Date().toISOString() });
+      res.status(503).json({
+        status: "unavailable",
+        time: new Date().toISOString(),
+        services: { database: "disconnected" },
+      });
     }
+  };
+
+  app.get("/", (_req, res) => {
+    res.json({
+      name: "antika-api",
+      status: "ok",
+      version: "1.0.0",
+      description: "Antika Invoice & Voucher API",
+      health: "/api/health",
+    });
   });
+
+  app.get("/health", healthHandler);
+  app.get("/api/health", healthHandler);
 
   app.use("/api/auth", authRouter);
   app.use("/api/users", usersRouter);

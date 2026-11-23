@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "start": "npm run start -w @antika/api",
     "predev": "npm run build -w @antika/shared",
     "dev": "concurrently -n api,web,shared -c blue,magenta,yellow \"npm run dev -w @antika/api\" \"npm run dev -w @antika/web\" \"npm run dev -w @antika/shared\"",
     "build": "npm run build -w @antika/shared && npm run build -w @antika/api && npm run build -w @antika/web",
@@ -49,5 +50,8 @@
     "prisma@6.1.0": true,
     "puppeteer@23.11.1": true,
     "esbuild@0.24.0": true
+  },
+  "dependencies": {
+    "cors": "^2.8.6"
   }
 }

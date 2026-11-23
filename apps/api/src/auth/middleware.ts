@@ -6,7 +6,14 @@ import { config } from "../config";
 
 export async function requireAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
   try {
-    const token = (req.cookies as Record<string, string | undefined> | undefined)?.[config.cookieName];
+    let token: string | undefined;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.slice(7).trim();
+    }
+    if (!token) {
+      token = (req.cookies as Record<string, string | undefined> | undefined)?.[config.cookieName];
+    }
     if (!token) throw new HttpError(401, "UNAUTHENTICATED", "Authentication required");
 
     let userId: number;

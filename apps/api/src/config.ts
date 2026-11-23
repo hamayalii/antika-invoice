@@ -17,11 +17,13 @@ for (const file of candidates) {
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  PORT: z.coerce.number().int().min(1).max(65535).optional(),
   API_PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_EXPIRES_DAYS: z.coerce.number().int().min(1).max(365).default(7),
   APP_ORIGIN: z.string().min(1).default("http://localhost:5173"),
+  CORS_ALLOWED_ORIGINS: z.string().optional(),
   PUBLIC_BASE_URL: z.string().url().optional(),
   WEB_BASE_URL: z.string().min(1).optional(),
   DOC_HMAC_SECRET: z.string().min(32).optional(),
@@ -29,6 +31,13 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v === undefined ? process.env.NODE_ENV === "production" : v === "true")),
+  COOKIE_SAME_SITE: z
+    .enum(["strict", "lax", "none"])
+    .optional()
+    .transform((v) => {
+      if (v) return v;
+      return process.env.NODE_ENV === "production" ? "none" : "lax";
+    }),
   TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
   VOUCHER_PAGE: z.enum(["A5_landscape", "A4_landscape"]).default("A5_landscape"),
   ADMIN_USERNAME: z.string().min(1).default("admin"),
@@ -48,6 +57,8 @@ const env = parsed.data;
 
 export const config = {
   ...env,
+  PORT: env.PORT ?? env.API_PORT,
+  API_PORT: env.PORT ?? env.API_PORT,
   WEB_BASE_URL: env.WEB_BASE_URL ?? env.APP_ORIGIN,
   PUBLIC_BASE_URL: env.PUBLIC_BASE_URL ?? env.APP_ORIGIN,
   DOC_HMAC_SECRET: env.DOC_HMAC_SECRET ?? env.JWT_SECRET,

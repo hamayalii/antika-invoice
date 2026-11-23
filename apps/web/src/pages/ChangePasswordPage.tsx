@@ -5,7 +5,7 @@ import { changePasswordSchema, type ChangePasswordInput } from "@antika/shared";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, KeyRound, LogOut } from "lucide-react";
-import { api } from "../lib/api";
+import { api, setStoredToken } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useApiErrorMessage, useValidationMessage } from "../lib/i18nHooks";
 import { useToast } from "../components/Toast";
@@ -43,6 +43,9 @@ export function ChangePasswordPage() {
     setServerError("");
     try {
       const result = await api.post<AuthResponse>("/auth/change-password", values);
+      if (result.token) {
+        setStoredToken(result.token);
+      }
       setUser(result.user);
       reset();
       toast.success(t("auth.passwordChanged"));

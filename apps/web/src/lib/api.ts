@@ -1,4 +1,42 @@
-const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "/api";
+const TOKEN_STORAGE_KEY = "antika_auth_token";
+
+export function getStoredToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredToken(token: string | null): void {
+  try {
+    if (token) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore environments where localStorage is blocked
+  }
+}
+
+function resolveApiBase(): string {
+  const envUrl =
+    (import.meta.env.VITE_API_URL as string | undefined) ||
+    (import.meta.env.VITE_API_BASE as string | undefined);
+
+  if (!envUrl) return "/api";
+
+  const trimmed = envUrl.trim().replace(/\/+$/, "");
+  if (trimmed.startsWith("/")) return trimmed;
+
+  if (trimmed.endsWith("/api")) {
+    return trimmed;
+  }
+  return `${trimmed}/api`;
+}
+
+export const API_BASE = resolveApiBase();
 
 export class ApiError extends Error {
   constructor(
@@ -27,11 +65,18 @@ function buildQuery(query?: Record<string, unknown>): string {
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { body, query, headers, ...rest } = options;
+  const token = getStoredToken();
+  const authHeaders: Record<string, string> = {};
+  if (token) {
+    authHeaders["Authorization"] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE}${path}${buildQuery(query)}`, {
     credentials: "include",
     ...rest,
     headers: {
       ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+      ...authHeaders,
       ...(headers ?? {}),
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
