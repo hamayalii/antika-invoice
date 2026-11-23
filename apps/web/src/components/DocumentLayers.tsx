@@ -15,7 +15,7 @@ export function Watermark({ widthMm, opacity }: WatermarkProps) {
   return (
     <svg
       className="doc-watermark"
-      style={{ width: `${widthMm}mm`, opacity }}
+      style={{ width: `${widthMm}mm`, height: `${widthMm * 0.64}mm`, opacity }}
       viewBox="0 0 1000 640"
       aria-hidden="true"
       focusable="false"

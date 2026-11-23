@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useRef, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -36,6 +36,8 @@ import { api } from "../lib/api";
 import { useApiErrorMessage, useValidationMessage } from "../lib/i18nHooks";
 import { useAuth } from "../lib/auth";
 import { useSettings } from "../lib/useSettings";
+import { openPrintWindow } from "../lib/printWindow";
+import { toWholeNumber } from "../lib/formNumbers";
 import { useToast } from "../components/Toast";
 import { PageLoader } from "../components/Ui";
 import { ConfirmDialog } from "../components/Modal";
@@ -130,15 +132,17 @@ export function VoucherEditorPage() {
   });
   const {
     register,
+    control,
     handleSubmit,
     reset,
-    watch,
     setValue,
     formState: { errors, isSubmitting },
   } = form;
 
-  const values = watch();
-  const amount = Number(values.amount) || 0;
+  // `watch()` hands back the mutable form-values object (stable identity), so
+  // memoised preview values never refresh. useWatch clones on each keystroke.
+  const values = useWatch({ control }) as VoucherInput;
+  const amount = toWholeNumber(values.amount);
   const lang = values.lang ?? "ar";
   const manualWords = Boolean(values.wordsManuallyEdited);
 
@@ -200,48 +204,34 @@ export function VoucherEditorPage() {
     nextNumberQuery.data?.number,
   ]);
 
-  const previewVoucher: VoucherDto = useMemo(
-    () => ({
-      id: voucherId ?? 0,
-      number: Number(values.number) || nextNumberQuery.data?.number || 0,
-      date: values.date || todayInBaghdad(),
-      invoiceId: values.invoiceId ?? null,
-      receivedFrom: values.receivedFrom ?? "",
-      amount,
-      amountWords: manualWords
-        ? values.amountWords ?? ""
-        : amountInWords(amount, lang),
-      paymentFor: values.paymentFor ?? "",
-      paymentMethod: values.paymentMethod ?? "cash",
-      preparedBy: values.preparedBy ?? "",
-      receivedByName: values.receivedByName ?? "",
-      approvedBy: values.approvedBy ?? "",
-      lang,
-      digitsMode: values.digitsMode ?? "latin",
-      createdBy: user?.id ?? 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      deletedAt: null,
-      verifyCode: voucherQuery.data?.voucher.verifyCode ?? "XXXX-XXXX-XXXX",
-      status: voucherQuery.data?.voucher.status ?? "DRAFT",
-      issuedAt: voucherQuery.data?.voucher.issuedAt ?? null,
-      cancelledAt: voucherQuery.data?.voucher.cancelledAt ?? null,
-      cancelReason: voucherQuery.data?.voucher.cancelReason ?? "",
-      verifyCount: voucherQuery.data?.voucher.verifyCount ?? 0,
-      lastVerifiedAt: voucherQuery.data?.voucher.lastVerifiedAt ?? null,
-      watermarkEnabled: values.watermarkEnabled ?? null,
-    }),
-    [
-      values,
-      amount,
-      lang,
-      manualWords,
-      voucherId,
-      nextNumberQuery.data?.number,
-      user?.id,
-      voucherQuery.data?.voucher,
-    ],
-  );
+  const previewVoucher: VoucherDto = {
+    id: voucherId ?? 0,
+    number: toWholeNumber(values.number) || nextNumberQuery.data?.number || 0,
+    date: values.date || todayInBaghdad(),
+    invoiceId: values.invoiceId ?? null,
+    receivedFrom: values.receivedFrom ?? "",
+    amount,
+    amountWords: manualWords ? values.amountWords ?? "" : amountInWords(amount, lang),
+    paymentFor: values.paymentFor ?? "",
+    paymentMethod: values.paymentMethod ?? "cash",
+    preparedBy: values.preparedBy ?? "",
+    receivedByName: values.receivedByName ?? "",
+    approvedBy: values.approvedBy ?? "",
+    lang,
+    digitsMode: values.digitsMode ?? "latin",
+    createdBy: user?.id ?? 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    deletedAt: null,
+    verifyCode: voucherQuery.data?.voucher.verifyCode ?? "XXXX-XXXX-XXXX",
+    status: voucherQuery.data?.voucher.status ?? "DRAFT",
+    issuedAt: voucherQuery.data?.voucher.issuedAt ?? null,
+    cancelledAt: voucherQuery.data?.voucher.cancelledAt ?? null,
+    cancelReason: voucherQuery.data?.voucher.cancelReason ?? "",
+    verifyCount: voucherQuery.data?.voucher.verifyCount ?? 0,
+    lastVerifiedAt: voucherQuery.data?.voucher.lastVerifiedAt ?? null,
+    watermarkEnabled: values.watermarkEnabled ?? null,
+  };
 
   const saveMutation = useMutation({
     mutationFn: async ({ input, print }: { input: VoucherInput; print: boolean }) => {
@@ -254,7 +244,7 @@ export function VoucherEditorPage() {
       toast.success(isEdit ? t("vouchers.saved") : t("vouchers.created"));
       await queryClient.invalidateQueries({ queryKey: ["vouchers"] });
       if (result.print) {
-        window.open(`/print/voucher/${result.voucher.id}?lang=${result.voucher.lang}`, "_blank", "noopener");
+        openPrintWindow(`/print/voucher/${result.voucher.id}?lang=${result.voucher.lang}`);
       }
       navigate(`/vouchers/${result.voucher.id}/edit`, { replace: !isEdit });
     },
@@ -374,7 +364,7 @@ export function VoucherEditorPage() {
               readOnly={!isAdmin}
               className={clsx("input", !isAdmin && "bg-slate-100")}
               dir="ltr"
-              {...register("number", { valueAsNumber: true })}
+              {...register("number", { setValueAs: (value: unknown) => toWholeNumber(value) || undefined })}
             />
           </div>
           <div>
@@ -473,6 +463,7 @@ export function VoucherEditorPage() {
             className="input"
             {...register("receivedFrom")}
             placeholder={t("vouchers.receivedFrom")}
+            data-testid="voucher-received-from"
           />
           {errors.receivedFrom ? (
             <p className="mt-1 text-xs font-semibold text-red-600">{validation(errors.receivedFrom.message)}</p>
@@ -480,7 +471,7 @@ export function VoucherEditorPage() {
         </div>
         <div className="mt-4">
           <label className="label">{t("vouchers.paymentFor")}</label>
-          <textarea className="textarea min-h-[90px]" rows={3} {...register("paymentFor")} />
+          <textarea className="textarea min-h-[90px]" rows={3} {...register("paymentFor")} data-testid="voucher-payment-for" />
         </div>
       </section>
 
@@ -499,7 +490,8 @@ export function VoucherEditorPage() {
             step={1}
             className="input text-lg font-extrabold"
             dir="ltr"
-            {...register("amount", { valueAsNumber: true })}
+            data-testid="voucher-amount"
+            {...register("amount", { setValueAs: toWholeNumber })}
           />
           {errors.amount ? (
             <p className="mt-1 text-xs font-semibold text-red-600">{validation(errors.amount.message)}</p>
@@ -576,7 +568,7 @@ export function VoucherEditorPage() {
   );
 
   const previewPanel = (
-    <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3 shadow-card">
+    <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3 shadow-card" data-testid="voucher-preview">
       <div className="mb-3 flex items-center justify-between gap-2 px-1">
         <span className="flex items-center gap-1.5 text-xs font-extrabold text-slate-500">
           <Eye className="h-4 w-4" />
@@ -619,7 +611,7 @@ export function VoucherEditorPage() {
               type="button"
               className="btn-ghost"
               onClick={() =>
-                window.open(`/print/voucher/${voucherId}?lang=${previewVoucher.lang}`, "_blank", "noopener")
+                openPrintWindow(`/print/voucher/${voucherId}?lang=${previewVoucher.lang}`)
               }
             >
               <Printer className="h-4 w-4" />

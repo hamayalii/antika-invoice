@@ -134,6 +134,68 @@ export function buildPrintCss(layout: PrintLayout): string {
     overflow: hidden;
     flex: 0 0 auto;
   }
+  /*
+   * Print-route hygiene. The printed sheet must be rasterised exactly like the
+   * screen render: no smoothing hints, no synthetic bold, no text-rendering
+   * tweaks, no animations. These are the knobs Chromium uses to switch to a
+   * different glyph rasterisation path while building a print job, which is
+   * what produced missing / half-drawn Arabic-script letters on paper.
+   */
+  .print-route {
+    text-rendering: auto;
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
+    font-kerning: normal;
+    font-variant-ligatures: normal;
+    font-feature-settings: normal;
+    font-synthesis: none;
+  }
+  .print-route *,
+  .print-route *::before,
+  .print-route *::after {
+    animation: none !important;
+    transition: none !important;
+    text-rendering: auto !important;
+    -webkit-font-smoothing: auto !important;
+    -moz-osx-font-smoothing: auto !important;
+    font-kerning: normal !important;
+    font-variant-ligatures: normal !important;
+    font-feature-settings: normal !important;
+    font-synthesis: none !important;
+  }
+  .print-close-bar {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: 12px;
+    background: #0f172a;
+    color: #fff;
+    padding: 10px 16px;
+    font-family: "Arkan", "Noto Naskh Arabic", Tahoma, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+    direction: rtl;
+  }
+  .print-close-bar button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    border-radius: 8px;
+    background: #ff5a00;
+    color: #fff;
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+  }
   .print-two-up {
     display: flex;
     flex-direction: column;
@@ -270,7 +332,8 @@ export function buildPrintCss(layout: PrintLayout): string {
       print-color-adjust: exact;
     }
     .print-toolbar,
-    .print-notice-backdrop {
+    .print-notice-backdrop,
+    .print-close-bar {
       display: none !important;
     }
     .print-page {

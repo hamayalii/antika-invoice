@@ -21,6 +21,7 @@ import { useApiErrorMessage } from "../lib/i18nHooks";
 import { useAuth } from "../lib/auth";
 import { useToast } from "../components/Toast";
 import { useDebounced } from "../lib/useDebounced";
+import { openPrintWindow } from "../lib/printWindow";
 import { PageHeader, PageLoader, ErrorState, EmptyState } from "../components/Ui";
 import { ConfirmDialog } from "../components/Modal";
 
@@ -311,8 +312,9 @@ export function VouchersPage() {
                           type="button"
                           className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-brand-orange"
                           title={t("invoices.print")}
+                          data-testid={`print-voucher-${row.id}`}
                           onClick={() =>
-                            window.open(`/print/voucher/${row.id}?lang=${row.lang}`, "_blank", "noopener")
+                            openPrintWindow(`/print/voucher/${row.id}?lang=${row.lang}`)
                           }
                         >
                           <Printer className="h-4 w-4" />

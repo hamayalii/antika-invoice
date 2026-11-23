@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useEffect, useRef, useState } from "react";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -39,6 +39,8 @@ import { useToast } from "../components/Toast";
 import { useAuth } from "../lib/auth";
 import { useSettings } from "../lib/useSettings";
 import { useDebounced } from "../lib/useDebounced";
+import { openPrintWindow } from "../lib/printWindow";
+import { toWholeNumber } from "../lib/formNumbers";
 import { PageLoader } from "../components/Ui";
 import { ConfirmDialog } from "../components/Modal";
 import { InvoiceDocument } from "../features/invoices/InvoiceDocument";
@@ -52,7 +54,6 @@ const emptyItem: ItemInput = {
   discount: 0,
   notes: "",
 };
-
 function defaults(settings: AppSettings, nextNumber?: number): InvoiceInput {
   return {
     number: nextNumber,
@@ -145,12 +146,16 @@ export function InvoiceEditorPage() {
     control,
     handleSubmit,
     reset,
-    watch,
     setValue,
     formState: { errors, isSubmitting },
   } = form;
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
-  const values = watch();
+  // `watch()` returns the mutable form-values object: its identity never
+  // changes, so any useMemo keyed on it (or on `values.items`) keeps a stale
+  // snapshot. useWatch clones on every keystroke, so the preview and the
+  // totals below always see live values.
+  const values = useWatch({ control }) as InvoiceInput;
+  const items = values.items ?? [];
 
   useEffect(() => {
     document.title = `${isEdit ? t("invoices.editInvoice") : t("invoices.newInvoice")} | ${t("app.name")}`;
@@ -168,7 +173,7 @@ export function InvoiceEditorPage() {
     }
   }, [isEdit, invoiceQuery.data, nextNumberQuery.data, reset, settings]);
 
-  const customerName = watch("customerName");
+  const customerName = useWatch({ control, name: "customerName" });
   const debouncedCustomer = useDebounced(customerName ?? "", 250);
   const customersQuery = useQuery({
     queryKey: ["customers", debouncedCustomer],
@@ -178,61 +183,56 @@ export function InvoiceEditorPage() {
     staleTime: 30_000,
   });
 
-  const totals = useMemo(
-    () =>
-      computeInvoiceTotals(
-        values.items ?? [],
-        Number(values.advancePercent) || 0,
-        Number(values.finalPercent) || 0,
-      ),
-    [values.items, values.advancePercent, values.finalPercent],
+  // Pure functions of the watched values: recomputed on every keystroke.
+  const totals = computeInvoiceTotals(
+    items,
+    toWholeNumber(values.advancePercent),
+    toWholeNumber(values.finalPercent),
   );
 
-  const previewInvoice: InvoiceDto = useMemo(() => {
-    return {
-      id: invoiceId ?? 0,
-      number: Number(values.number) || nextNumberQuery.data?.number || 0,
-      date: values.date || todayInBaghdad(),
-      customerId: values.customerId ?? null,
-      customerName: values.customerName ?? "",
-      customerPhone: values.customerPhone ?? "",
-      customerAddress: values.customerAddress ?? "",
-      lang: values.lang ?? "ku",
-      digitsMode: values.digitsMode ?? "eastern",
-      itemInfo: values.itemInfo ?? "",
-      materialsText: values.materialsText ?? "",
-      specialOffer: values.specialOffer ?? "",
-      advancePercent: totals.advancePercent,
-      finalPercent: totals.finalPercent,
-      subtotal: totals.subtotal,
-      total: totals.total,
-      advanceAmount: totals.advanceAmount,
-      finalAmount: totals.finalAmount,
-      createdBy: user?.id ?? 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      deletedAt: null,
-      verifyCode: invoiceQuery.data?.invoice.verifyCode ?? "XXXX-XXXX-XXXX",
-      status: invoiceQuery.data?.invoice.status ?? "DRAFT",
-      issuedAt: invoiceQuery.data?.invoice.issuedAt ?? null,
-      cancelledAt: invoiceQuery.data?.invoice.cancelledAt ?? null,
-      cancelReason: invoiceQuery.data?.invoice.cancelReason ?? "",
-      verifyCount: invoiceQuery.data?.invoice.verifyCount ?? 0,
-      lastVerifiedAt: invoiceQuery.data?.invoice.lastVerifiedAt ?? null,
-      watermarkEnabled: values.watermarkEnabled ?? null,
-      items: totals.items.map((item, index) => ({
-        id: index + 1,
-        position: index,
-        name: item.name,
-        code: item.code,
-        qty: item.qty,
-        price: item.price,
-        discount: item.discount,
-        notes: item.notes,
-        lineTotal: item.lineTotal,
-      })),
-    };
-  }, [values, totals, invoiceId, nextNumberQuery.data?.number, user?.id, invoiceQuery.data?.invoice]);
+  const previewInvoice: InvoiceDto = {
+    id: invoiceId ?? 0,
+    number: toWholeNumber(values.number) || nextNumberQuery.data?.number || 0,
+    date: values.date || todayInBaghdad(),
+    customerId: values.customerId ?? null,
+    customerName: values.customerName ?? "",
+    customerPhone: values.customerPhone ?? "",
+    customerAddress: values.customerAddress ?? "",
+    lang: values.lang ?? "ku",
+    digitsMode: values.digitsMode ?? "eastern",
+    itemInfo: values.itemInfo ?? "",
+    materialsText: values.materialsText ?? "",
+    specialOffer: values.specialOffer ?? "",
+    advancePercent: totals.advancePercent,
+    finalPercent: totals.finalPercent,
+    subtotal: totals.subtotal,
+    total: totals.total,
+    advanceAmount: totals.advanceAmount,
+    finalAmount: totals.finalAmount,
+    createdBy: user?.id ?? 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    deletedAt: null,
+    verifyCode: invoiceQuery.data?.invoice.verifyCode ?? "XXXX-XXXX-XXXX",
+    status: invoiceQuery.data?.invoice.status ?? "DRAFT",
+    issuedAt: invoiceQuery.data?.invoice.issuedAt ?? null,
+    cancelledAt: invoiceQuery.data?.invoice.cancelledAt ?? null,
+    cancelReason: invoiceQuery.data?.invoice.cancelReason ?? "",
+    verifyCount: invoiceQuery.data?.invoice.verifyCount ?? 0,
+    lastVerifiedAt: invoiceQuery.data?.invoice.lastVerifiedAt ?? null,
+    watermarkEnabled: values.watermarkEnabled ?? null,
+    items: totals.items.map((item, index) => ({
+      id: index + 1,
+      position: index,
+      name: item.name,
+      code: item.code,
+      qty: item.qty,
+      price: item.price,
+      discount: item.discount,
+      notes: item.notes,
+      lineTotal: item.lineTotal,
+    })),
+  };
 
   const saveMutation = useMutation({
     mutationFn: async ({ input, print }: { input: InvoiceInput; print: boolean }) => {
@@ -246,7 +246,7 @@ export function InvoiceEditorPage() {
       await queryClient.invalidateQueries({ queryKey: ["invoices"] });
       await queryClient.invalidateQueries({ queryKey: ["customers"] });
       if (result.print) {
-        window.open(`/print/invoice/${result.invoice.id}?lang=${result.invoice.lang}`, "_blank", "noopener");
+        openPrintWindow(`/print/invoice/${result.invoice.id}?lang=${result.invoice.lang}`);
       }
       navigate(`/invoices/${result.invoice.id}/edit`, { replace: !isEdit });
     },
@@ -347,7 +347,9 @@ export function InvoiceEditorPage() {
               readOnly={!isAdmin}
               className={clsx("input", !isAdmin && "bg-slate-100")}
               dir="ltr"
-              {...register("number", { valueAsNumber: true })}
+              {...register("number", {
+                setValueAs: (value: unknown) => toWholeNumber(value) || undefined,
+              })}
             />
             <p className="mt-1 text-[11px] leading-4 text-slate-400">{t("invoices.numberHint")}</p>
           </div>
@@ -500,7 +502,7 @@ export function InvoiceEditorPage() {
 
         <div className="space-y-4">
           {fields.map((field, index) => {
-            const item = values.items?.[index];
+            const item = items[index];
             const lineTotal = item ? computeLineTotal(item) : 0;
             return (
               <div key={field.id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5">
@@ -521,7 +523,7 @@ export function InvoiceEditorPage() {
                 <div className="grid gap-3 sm:grid-cols-[2fr_1fr]">
                   <div>
                     <label className="label !text-xs">{t("invoices.itemName")}</label>
-                    <input className="input" {...register(`items.${index}.name`)} />
+                    <input className="input" data-testid={`item-name-${index}`} {...register(`items.${index}.name`)} />
                   </div>
                   <div>
                     <label className="label !text-xs">{t("invoices.itemCode")}</label>
@@ -536,7 +538,8 @@ export function InvoiceEditorPage() {
                       min={0}
                       className="input"
                       dir="ltr"
-                      {...register(`items.${index}.qty`, { valueAsNumber: true })}
+                      data-testid={`item-qty-${index}`}
+                      {...register(`items.${index}.qty`, { setValueAs: toWholeNumber })}
                     />
                   </div>
                   <div>
@@ -547,7 +550,8 @@ export function InvoiceEditorPage() {
                       step={1}
                       className="input"
                       dir="ltr"
-                      {...register(`items.${index}.price`, { valueAsNumber: true })}
+                      data-testid={`item-price-${index}`}
+                      {...register(`items.${index}.price`, { setValueAs: toWholeNumber })}
                     />
                   </div>
                   <div>
@@ -558,19 +562,20 @@ export function InvoiceEditorPage() {
                       step={1}
                       className="input"
                       dir="ltr"
-                      {...register(`items.${index}.discount`, { valueAsNumber: true })}
+                      data-testid={`item-discount-${index}`}
+                      {...register(`items.${index}.discount`, { setValueAs: toWholeNumber })}
                     />
                   </div>
                   <div>
                     <label className="label !text-xs">{t("invoices.lineTotal")}</label>
-                    <div className="flex h-[42px] items-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-extrabold text-brand-orange" dir="ltr">
+                    <div className="flex h-[42px] items-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-extrabold text-brand-orange" dir="ltr" data-testid={`line-total-${index}`}>
                       {new Intl.NumberFormat("en-US").format(lineTotal)}
                     </div>
                   </div>
                 </div>
                 <div className="mt-3">
                   <label className="label !text-xs">{t("invoices.notes")}</label>
-                  <input className="input" {...register(`items.${index}.notes`)} />
+                  <input className="input" data-testid={`item-notes-${index}`} {...register(`items.${index}.notes`)} />
                 </div>
               </div>
             );
@@ -583,7 +588,7 @@ export function InvoiceEditorPage() {
         <div className="space-y-4">
           <div>
             <label className="label">{t("invoices.itemInfo")}</label>
-            <textarea className="textarea" rows={4} {...register("itemInfo")} />
+            <textarea className="textarea" rows={4} data-testid="invoice-item-info" {...register("itemInfo")} />
           </div>
           <div>
             <label className="label">{t("invoices.materials")}</label>
@@ -608,12 +613,10 @@ export function InvoiceEditorPage() {
               className="input"
               dir="ltr"
               {...register("advancePercent", {
-                valueAsNumber: true,
+                setValueAs: toWholeNumber,
                 onChange: (event) => {
-                  const value = Number(event.target.value);
-                  if (Number.isFinite(value)) {
-                    setValue("finalPercent", 100 - value, { shouldDirty: true });
-                  }
+                  const value = toWholeNumber(event.target.value);
+                  setValue("finalPercent", 100 - value, { shouldDirty: true });
                 },
               })}
             />
@@ -627,12 +630,10 @@ export function InvoiceEditorPage() {
               className="input"
               dir="ltr"
               {...register("finalPercent", {
-                valueAsNumber: true,
+                setValueAs: toWholeNumber,
                 onChange: (event) => {
-                  const value = Number(event.target.value);
-                  if (Number.isFinite(value)) {
-                    setValue("advancePercent", 100 - value, { shouldDirty: true });
-                  }
+                  const value = toWholeNumber(event.target.value);
+                  setValue("advancePercent", 100 - value, { shouldDirty: true });
                 },
               })}
             />
@@ -641,7 +642,7 @@ export function InvoiceEditorPage() {
         <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 text-center">
           <div>
             <p className="text-[11px] font-semibold text-slate-400">{t("invoices.totalAmount")}</p>
-            <p className="mt-1 text-sm font-extrabold text-slate-800" dir="ltr">
+            <p className="mt-1 text-sm font-extrabold text-slate-800" dir="ltr" data-testid="totals-total">
               {new Intl.NumberFormat("en-US").format(totals.total)}
             </p>
           </div>
@@ -664,7 +665,7 @@ export function InvoiceEditorPage() {
   );
 
   const previewPanel = (
-    <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3 shadow-card">
+    <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3 shadow-card" data-testid="invoice-preview">
       <div className="mb-3 flex items-center justify-between gap-2 px-1">
         <span className="flex items-center gap-1.5 text-xs font-extrabold text-slate-500">
           <Eye className="h-4 w-4" />
@@ -707,7 +708,7 @@ export function InvoiceEditorPage() {
               type="button"
               className="btn-ghost"
               onClick={() =>
-                window.open(`/print/invoice/${invoiceId}?lang=${previewInvoice.lang}`, "_blank", "noopener")
+                openPrintWindow(`/print/invoice/${invoiceId}?lang=${previewInvoice.lang}`)
               }
             >
               <Printer className="h-4 w-4" />

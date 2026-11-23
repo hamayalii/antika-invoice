@@ -3,13 +3,16 @@
  * The supplied Arkan files are kept verbatim under /fonts/arkan/ (original names),
  * next to full-glyph WOFF2 copies compressed without subsetting.
  * ۇ (U+06C7) is not present in the supplied Arkan master; see README.
+ *
+ * IMPORTANT: only the bundled files are listed — no `local()` sources. A
+ * `local()` entry lets the browser pick an installed face with the same name
+ * (often a Latin-only cut) while the print pipeline is resolving the font,
+ * which makes Chromium fall back per glyph and print words with missing or
+ * half-drawn Kurdish/Arabic letters.
  */
 @font-face {
   font-family: "Arkan";
   src:
-    local("Arkan ABC Favorit Light"),
-    local("Arkan Light"),
-    local("Arkan"),
     url("/fonts/arkan/Arkan ABC Favorit Light-s.p.7dfab851.woff2") format("woff2"),
     url("/fonts/arkan/Arkan ABC Favorit Light-s.p.7dfab851.otf") format("opentype");
   font-weight: 300;
@@ -20,9 +23,6 @@
 @font-face {
   font-family: "Arkan";
   src:
-    local("Arkan ABC Favorit Book"),
-    local("Arkan Book"),
-    local("Arkan"),
     url("/fonts/arkan/Arkan ABC Favorit Book-s.p.85946152.woff2") format("woff2"),
     url("/fonts/arkan/Arkan ABC Favorit Book-s.p.85946152.ttf") format("truetype");
   font-weight: 400;
@@ -33,9 +33,6 @@
 @font-face {
   font-family: "Arkan";
   src:
-    local("Arkan ABC Favorit Regular"),
-    local("Arkan Regular"),
-    local("Arkan"),
     url("/fonts/arkan/Arkan ABC Favorit Regular-s.p.13709ce1.woff2") format("woff2"),
     url("/fonts/arkan/Arkan ABC Favorit Regular-s.p.13709ce1.ttf") format("truetype");
   font-weight: 450;
@@ -46,9 +43,6 @@
 @font-face {
   font-family: "Arkan";
   src:
-    local("Arkan ABC Favorit Medium"),
-    local("Arkan Medium"),
-    local("Arkan"),
     url("/fonts/arkan/Arkan ABC Favorit Medium-s.p.8ec3f1e7.woff2") format("woff2"),
     url("/fonts/arkan/Arkan ABC Favorit Medium-s.p.8ec3f1e7.otf") format("opentype");
   font-weight: 500;
@@ -56,15 +50,17 @@
   font-display: block;
 }
 
+/*
+ * 600/700/800/900 all resolve to the real Bold cut, so the documents never
+ * depend on Chromium's synthetic-bold path (which is what renders as clipped
+ * or half-drawn strokes in the print pipeline).
+ */
 @font-face {
   font-family: "Arkan";
   src:
-    local("Arkan ABC Favorit Bold"),
-    local("Arkan Bold"),
-    local("Arkan"),
     url("/fonts/arkan/Arkan ABC Favorit Bold-s.p.62621432.woff2") format("woff2"),
     url("/fonts/arkan/Arkan ABC Favorit Bold-s.p.62621432.ttf") format("truetype");
-  font-weight: 700;
+  font-weight: 600 900;
   font-style: normal;
   font-display: block;
 }

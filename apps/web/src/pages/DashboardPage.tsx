@@ -13,6 +13,7 @@ import {
 import { formatMoney, type InvoiceDto, type VoucherDto } from "@antika/shared";
 import { useAuth } from "../lib/auth";
 import { api } from "../lib/api";
+import { markPrintStarted, reloadIfPrintedRecently } from "../lib/printGuard";
 import { DotBanner } from "../components/DotBanner";
 import { PageLoader } from "../components/Ui";
 
@@ -29,6 +30,31 @@ export function DashboardPage() {
   useEffect(() => {
     document.title = `${t("dashboard.title")} | ${t("app.name")}`;
   }, [t]);
+
+  /*
+   * Print safety net: if this tab ever entered print mode (Ctrl+P, or the
+   * same-tab fallback when a popup was blocked) Chromium can leave the glyph
+   * cache broken until a refresh. Reload exactly once when the dialog closes
+   * or the tab becomes visible again.
+   */
+  useEffect(() => {
+    const onBeforePrint = () => markPrintStarted();
+    const onAfterPrint = () => {
+      reloadIfPrintedRecently();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") reloadIfPrintedRecently();
+    };
+    window.addEventListener("beforeprint", onBeforePrint);
+    window.addEventListener("afterprint", onAfterPrint);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    reloadIfPrintedRecently();
+    return () => {
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
 
   const dashboardQuery = useQuery({
     queryKey: ["dashboard"],

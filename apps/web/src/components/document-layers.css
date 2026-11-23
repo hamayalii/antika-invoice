@@ -5,11 +5,9 @@
 
 .doc-watermark {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  margin: auto;
   z-index: 0;
-  height: auto;
   pointer-events: none;
   user-select: none;
   -webkit-print-color-adjust: exact;

@@ -391,7 +391,9 @@
     "noticeDoNotFit": "لا تستخدم «Fit to page» — اختر «Actual size» أو 100%.",
     "noticePrintNow": "اطبع الآن",
     "noticeCancel": "إلغاء",
-    "noticeHelp": "التعليمات الكاملة في صفحة المساعدة."
+    "noticeHelp": "التعليمات الكاملة في صفحة المساعدة.",
+    "closeWindowHint": "إذا لم تُغلق النافذة تلقائياً، يرجى إغلاقها.",
+    "closeWindow": "إغلاق هذه النافذة"
   },
   "help": {
     "title": "مساعدة الطباعة",

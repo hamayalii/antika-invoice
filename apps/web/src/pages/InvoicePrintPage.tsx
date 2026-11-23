@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CircleHelp, FileDown, Loader2, Printer } from "lucide-react";
+import { ArrowLeft, CircleHelp, FileDown, Loader2, Printer, X } from "lucide-react";
 import type { DigitsMode, InvoiceDto, Language } from "@antika/shared";
 import { api } from "../lib/api";
 import { useSettingsQuery } from "../lib/useSettings";
 import { buildPrintCss } from "../lib/printLayout";
+import { usePrintPage, waitForPrintReady } from "../lib/usePrintPage";
 import { PrintNotice, hasSeenPrintNotice, markPrintNoticeSeen } from "../components/PrintNotice";
 import { InvoiceDocument } from "../features/invoices/InvoiceDocument";
 import "../features/invoices/invoice-document.css";
@@ -18,6 +19,7 @@ export function InvoicePrintPage() {
   const { t } = useTranslation();
   const [params] = useSearchParams();
   const invoiceId = Number(id);
+  const autoPrint = params.get("autoprint") === "1";
 
   const invoiceQuery = useQuery({
     queryKey: ["invoice", invoiceId],
@@ -49,13 +51,18 @@ export function InvoicePrintPage() {
   );
 
   const [noticeOpen, setNoticeOpen] = useState(false);
-  const requestPrint = () => {
-    if (hasSeenPrintNotice()) window.print();
-    else setNoticeOpen(true);
+  const requestPrint = async () => {
+    if (!hasSeenPrintNotice()) {
+      setNoticeOpen(true);
+      return;
+    }
+    await waitForPrintReady();
+    window.print();
   };
-  const startPrint = () => {
+  const startPrint = async () => {
     markPrintNoticeSeen();
     setNoticeOpen(false);
+    await waitForPrintReady();
     window.print();
   };
 
@@ -106,56 +113,72 @@ export function InvoicePrintPage() {
     return () => window.removeEventListener("beforeprint", onBeforePrint);
   }, [issueDocument]);
 
+  const backTo = invoice ? `/invoices/${invoice.id}/edit` : "/invoices";
+  const { closeBlocked, closeWindow, goBack } = usePrintPage({ ready, autoPrint, backTo });
+
   return (
-    <>
+    <div className="print-route" data-print-route="invoice">
       <style>{printCss}</style>
-      <PrintNotice
-        open={noticeOpen}
-        paper="A4 · 210 × 297 mm"
-        onClose={() => setNoticeOpen(false)}
-        onPrint={startPrint}
-      />
-      <div className="print-page">
-        <div className="print-toolbar">
-          <div className="meta">
-            <span className="title">
-              {invoice ? `${t("invoices.title")} #${invoice.number}` : t("print.preparing")}
-            </span>
-            <span className="hint">A4 · 210 × 297 mm</span>
-          </div>
-          <div className="actions">
-            <Link to={invoice ? `/invoices/${invoice.id}/edit` : "/invoices"} className="secondary">
-              <ArrowLeft className="h-4 w-4" />
-              {t("print.back")}
-            </Link>
-            {invoice ? (
-              <>
-                <a href={`/api/invoices/${invoice.id}/pdf`} target="_blank" rel="noopener" className="secondary">
-                  <FileDown className="h-4 w-4" />
-                  {t("print.downloadPdf")}
-                </a>
-                <button
-                  type="button"
-                  className="primary"
-                  data-testid="print-button"
-                  onClick={requestPrint}
-                >
-                  <Printer className="h-4 w-4" />
-                  {t("print.printButton")}
-                </button>
-                <button
-                  type="button"
-                  className="ghost"
-                  aria-label={t("print.noticeTitle")}
-                  title={t("print.noticeTitle")}
-                  onClick={() => setNoticeOpen(true)}
-                >
-                  <CircleHelp className="h-4 w-4" />
-                </button>
-              </>
-            ) : null}
-          </div>
+      {!autoPrint ? (
+        <PrintNotice
+          open={noticeOpen}
+          paper="A4 · 210 × 297 mm"
+          onClose={() => setNoticeOpen(false)}
+          onPrint={startPrint}
+        />
+      ) : null}
+      {closeBlocked ? (
+        <div className="print-close-bar" role="alert">
+          <span>{t("print.closeWindowHint")}</span>
+          <button type="button" onClick={closeWindow} data-testid="print-close">
+            <X className="h-4 w-4" />
+            {t("print.closeWindow")}
+          </button>
         </div>
+      ) : null}
+      <div className="print-page">
+        {!autoPrint ? (
+          <div className="print-toolbar">
+            <div className="meta">
+              <span className="title">
+                {invoice ? `${t("invoices.title")} #${invoice.number}` : t("print.preparing")}
+              </span>
+              <span className="hint">A4 · 210 × 297 mm</span>
+            </div>
+            <div className="actions">
+              <button type="button" className="secondary" onClick={goBack} data-testid="print-back">
+                <ArrowLeft className="h-4 w-4" />
+                {t("print.back")}
+              </button>
+              {invoice ? (
+                <>
+                  <a href={`/api/invoices/${invoice.id}/pdf`} target="_blank" rel="noopener" className="secondary">
+                    <FileDown className="h-4 w-4" />
+                    {t("print.downloadPdf")}
+                  </a>
+                  <button
+                    type="button"
+                    className="primary"
+                    data-testid="print-button"
+                    onClick={requestPrint}
+                  >
+                    <Printer className="h-4 w-4" />
+                    {t("print.printButton")}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    aria-label={t("print.noticeTitle")}
+                    title={t("print.noticeTitle")}
+                    onClick={() => setNoticeOpen(true)}
+                  >
+                    <CircleHelp className="h-4 w-4" />
+                  </button>
+                </>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
         {loading ? (
           <div className="print-sheet-wrap flex items-center justify-center bg-white">
@@ -182,6 +205,6 @@ export function InvoicePrintPage() {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }

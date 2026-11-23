@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CircleHelp, Copy, FileDown, Loader2, Printer } from "lucide-react";
+import { ArrowLeft, CircleHelp, Copy, FileDown, Loader2, Printer, X } from "lucide-react";
 import { amountInWords, type DigitsMode, type Language, type VoucherDto, type VoucherPage } from "@antika/shared";
 import { api } from "../lib/api";
 import { useSettingsQuery } from "../lib/useSettings";
 import { buildPrintCss, type PrintLayout } from "../lib/printLayout";
+import { usePrintPage, waitForPrintReady } from "../lib/usePrintPage";
 import { PrintNotice, hasSeenPrintNotice, markPrintNoticeSeen } from "../components/PrintNotice";
 import { VoucherDocument } from "../features/vouchers/VoucherDocument";
 import "../features/vouchers/voucher-document.css";
@@ -46,6 +47,7 @@ export function VoucherPrintPage() {
   const { t } = useTranslation();
   const [params] = useSearchParams();
   const voucherId = Number(id);
+  const autoPrint = params.get("autoprint") === "1";
 
   const voucherQuery = useQuery({
     queryKey: ["voucher", voucherId],
@@ -79,13 +81,18 @@ export function VoucherPrintPage() {
   const printCss = useMemo(() => buildPrintCss(layout), [layout]);
 
   const [noticeOpen, setNoticeOpen] = useState(false);
-  const requestPrint = () => {
-    if (hasSeenPrintNotice()) window.print();
-    else setNoticeOpen(true);
+  const requestPrint = async () => {
+    if (!hasSeenPrintNotice()) {
+      setNoticeOpen(true);
+      return;
+    }
+    await waitForPrintReady();
+    window.print();
   };
-  const startPrint = () => {
+  const startPrint = async () => {
     markPrintNoticeSeen();
     setNoticeOpen(false);
+    await waitForPrintReady();
     window.print();
   };
 
@@ -136,7 +143,10 @@ export function VoucherPrintPage() {
     return () => window.removeEventListener("beforeprint", onBeforePrint);
   }, [issueDocument]);
 
-  const querySuffix = langOverride ? `&lang=${lang}` : "";
+  const backTo = voucher ? `/vouchers/${voucher.id}/edit` : "/vouchers";
+  const { closeBlocked, closeWindow, goBack } = usePrintPage({ ready, autoPrint, backTo });
+
+  const querySuffix = `${langOverride ? `&lang=${lang}` : ""}${autoPrint ? "&autoprint=1" : ""}`;
   const hintText = twoUp
     ? "A4 · 2 × A5 · 210 × 297 mm"
     : voucherPage === "A4_landscape"
@@ -149,71 +159,95 @@ export function VoucherPrintPage() {
       : "A5 landscape · 210 × 148 mm";
   const safeStyle = { "--print-safe-margin": `${safeMarginMm}mm` } as React.CSSProperties;
 
+  const sheet = (
+    <div
+      className="print-sheet-wrap"
+      data-print-ready="true"
+      data-page-size={`${layout.pageWidthMm}x${layout.pageHeightMm}`}
+      style={safeStyle}
+    >
+      <VoucherDocument voucher={displayVoucher!} settings={settings!} lang={lang} digitsMode={digitsMode} />
+    </div>
+  );
+
   return (
-    <>
+    <div className="print-route" data-print-route="voucher">
       <style>{printCss}</style>
-      <PrintNotice
-        open={noticeOpen}
-        paper={paperLabel}
-        twoUp={twoUp}
-        onClose={() => setNoticeOpen(false)}
-        onPrint={startPrint}
-      />
+      {!autoPrint ? (
+        <PrintNotice
+          open={noticeOpen}
+          paper={paperLabel}
+          twoUp={twoUp}
+          onClose={() => setNoticeOpen(false)}
+          onPrint={startPrint}
+        />
+      ) : null}
+      {closeBlocked ? (
+        <div className="print-close-bar" role="alert">
+          <span>{t("print.closeWindowHint")}</span>
+          <button type="button" onClick={closeWindow} data-testid="print-close">
+            <X className="h-4 w-4" />
+            {t("print.closeWindow")}
+          </button>
+        </div>
+      ) : null}
       <div className="print-page">
-        <div className="print-toolbar">
-          <div className="meta">
-            <span className="title">
-              {voucher ? `${t("vouchers.title")} #${voucher.number}` : t("print.preparing")}
-            </span>
-            <span className="hint">{hintText}</span>
-          </div>
-          <div className="actions">
-            <Link to={voucher ? `/vouchers/${voucher.id}/edit` : "/vouchers"} className="secondary">
-              <ArrowLeft className="h-4 w-4" />
-              {t("print.back")}
-            </Link>
-            {voucher ? (
-              <>
-                {voucherPage === "A5_landscape" ? (
-                  <Link
-                    to={`/print/voucher/${voucher.id}?${twoUp ? "" : "imposition=2up"}${querySuffix}`}
+        {!autoPrint ? (
+          <div className="print-toolbar">
+            <div className="meta">
+              <span className="title">
+                {voucher ? `${t("vouchers.title")} #${voucher.number}` : t("print.preparing")}
+              </span>
+              <span className="hint">{hintText}</span>
+            </div>
+            <div className="actions">
+              <button type="button" className="secondary" onClick={goBack} data-testid="print-back">
+                <ArrowLeft className="h-4 w-4" />
+                {t("print.back")}
+              </button>
+              {voucher ? (
+                <>
+                  {voucherPage === "A5_landscape" ? (
+                    <a
+                      href={`/print/voucher/${voucher.id}?${twoUp ? "" : "imposition=2up"}${querySuffix}`}
+                      className="secondary"
+                    >
+                      <Copy className="h-4 w-4" />
+                      {twoUp ? t("print.singleUp") : t("print.twoUp")}
+                    </a>
+                  ) : null}
+                  <a
+                    href={`/api/vouchers/${voucher.id}/pdf${twoUp ? "?imposition=2up" : ""}`}
+                    target="_blank"
+                    rel="noopener"
                     className="secondary"
                   >
-                    <Copy className="h-4 w-4" />
-                    {twoUp ? t("print.singleUp") : t("print.twoUp")}
-                  </Link>
-                ) : null}
-                <a
-                  href={`/api/vouchers/${voucher.id}/pdf${twoUp ? "?imposition=2up" : ""}`}
-                  target="_blank"
-                  rel="noopener"
-                  className="secondary"
-                >
-                  <FileDown className="h-4 w-4" />
-                  {t("print.downloadPdf")}
-                </a>
-                <button
-                  type="button"
-                  className="primary"
-                  data-testid="print-button"
-                  onClick={requestPrint}
-                >
-                  <Printer className="h-4 w-4" />
-                  {t("print.printButton")}
-                </button>
-                <button
-                  type="button"
-                  className="ghost"
-                  aria-label={t("print.noticeTitle")}
-                  title={t("print.noticeTitle")}
-                  onClick={() => setNoticeOpen(true)}
-                >
-                  <CircleHelp className="h-4 w-4" />
-                </button>
-              </>
-            ) : null}
+                    <FileDown className="h-4 w-4" />
+                    {t("print.downloadPdf")}
+                  </a>
+                  <button
+                    type="button"
+                    className="primary"
+                    data-testid="print-button"
+                    onClick={requestPrint}
+                  >
+                    <Printer className="h-4 w-4" />
+                    {t("print.printButton")}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    aria-label={t("print.noticeTitle")}
+                    title={t("print.noticeTitle")}
+                    onClick={() => setNoticeOpen(true)}
+                  >
+                    <CircleHelp className="h-4 w-4" />
+                  </button>
+                </>
+              ) : null}
+            </div>
           </div>
-        </div>
+        ) : null}
 
         {loading ? (
           <div className="print-sheet-wrap flex items-center justify-center bg-white">
@@ -245,16 +279,9 @@ export function VoucherPrintPage() {
             </div>
           </div>
         ) : (
-          <div
-            className="print-sheet-wrap"
-            data-print-ready="true"
-            data-page-size={`${layout.pageWidthMm}x${layout.pageHeightMm}`}
-            style={safeStyle}
-          >
-            <VoucherDocument voucher={displayVoucher!} settings={settings!} lang={lang} digitsMode={digitsMode} />
-          </div>
+          sheet
         )}
       </div>
-    </>
+    </div>
   );
 }
