@@ -5,7 +5,6 @@ import { loginSchema, type LoginInput } from "@antika/shared";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, ArrowLeft, LogIn, ShieldCheck } from "lucide-react";
-import { api } from "../lib/api";
 import { api, setStoredToken } from "../lib/api";
 import type { AuthResponse } from "../lib/types";
 import { useAuth } from "../lib/auth";
