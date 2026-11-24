@@ -592,6 +592,13 @@ export function SidebarCrane() {
     const frame = (now: number) => {
       rafId = requestAnimationFrame(frame);
       if (!running) return;
+      // The canvas can be mounted before it has a measurable size (collapsed
+      // sidebar, hidden tab). `layout` is only built by `resize`, so retry it
+      // here instead of dereferencing a null scene.
+      if (!layout) {
+        resize();
+        if (!layout) return;
+      }
       if (lastTime && now - lastTime < 1000 / FPS - 2) return;
       const dt = lastTime ? Math.min(0.12, (now - lastTime) / 1000) : 1 / FPS;
       lastTime = now;

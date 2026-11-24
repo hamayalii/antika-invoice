@@ -136,7 +136,7 @@ export function VoucherEditorPage() {
     handleSubmit,
     reset,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = form;
 
   // `watch()` hands back the mutable form-values object (stable identity), so
@@ -152,6 +152,13 @@ export function VoucherEditorPage() {
 
   useEffect(() => {
     if (initialized.current) return;
+    // Never reset a form the user has already started typing into: the
+    // next-number / settings request can resolve a few hundred ms late and
+    // would otherwise wipe the first keystrokes.
+    if (isDirty) {
+      initialized.current = true;
+      return;
+    }
     if (isEdit && voucherQuery.data?.voucher) {
       reset(toFormValues(voucherQuery.data.voucher));
       initialized.current = true;
@@ -161,7 +168,7 @@ export function VoucherEditorPage() {
       reset(defaults(settings, user?.fullName ?? "", nextNumberQuery.data.number));
       initialized.current = true;
     }
-  }, [isEdit, voucherQuery.data, nextNumberQuery.data, reset, settings, user?.fullName]);
+  }, [isEdit, voucherQuery.data, nextNumberQuery.data, reset, settings, user?.fullName, isDirty]);
 
   // Keep the words in sync with the amount unless the user typed their own text.
   useEffect(() => {

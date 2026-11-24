@@ -147,7 +147,7 @@ export function InvoiceEditorPage() {
     handleSubmit,
     reset,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = form;
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
   // `watch()` returns the mutable form-values object: its identity never
@@ -163,6 +163,13 @@ export function InvoiceEditorPage() {
 
   useEffect(() => {
     if (initialized.current) return;
+    // Never reset a form the user has already started typing into: the
+    // next-number / settings request can resolve a few hundred ms late and
+    // would otherwise wipe the first keystrokes.
+    if (isDirty) {
+      initialized.current = true;
+      return;
+    }
     if (isEdit && invoiceQuery.data?.invoice) {
       const invoice = invoiceQuery.data.invoice;
       reset(toFormValues(invoice));
@@ -171,7 +178,7 @@ export function InvoiceEditorPage() {
       reset(defaults(settings, nextNumberQuery.data.number));
       initialized.current = true;
     }
-  }, [isEdit, invoiceQuery.data, nextNumberQuery.data, reset, settings]);
+  }, [isEdit, invoiceQuery.data, nextNumberQuery.data, reset, settings, isDirty]);
 
   const customerName = useWatch({ control, name: "customerName" });
   const debouncedCustomer = useDebounced(customerName ?? "", 250);

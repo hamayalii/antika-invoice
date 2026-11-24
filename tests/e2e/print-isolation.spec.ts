@@ -14,7 +14,7 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
  *  - the standalone print route waits for every font face, prints itself and
  *    closes; Back is a hard navigation.
  */
-const OUT_DIR = path.join("test-results", "print-isolation");
+const OUT_DIR = path.join("artifacts", "e2e", "print-isolation");
 const USERNAME = process.env.E2E_USERNAME ?? "admin";
 const PASSWORD = process.env.E2E_PASSWORD ?? "ChangeMe!1234";
 const SAMPLE = "ێڵۆڕەڤ";
@@ -150,10 +150,6 @@ test.describe("Print isolation (Bug 2)", () => {
       page.locator('[data-testid="print-invoice-1"]').click(),
     ]);
     await popup.waitForLoadState("load");
-    popup.on("close", () => console.log("[popup] closed"));
-    popup.on("crash", () => console.log("[popup] crashed"));
-    popup.on("console", (msg) => console.log(`[popup console] ${msg.type()}: ${msg.text()}`));
-    popup.on("pageerror", (error) => console.log(`[popup pageerror] ${error.message}`));
 
     // Isolated route, autoprint flag set, app tab untouched.
     const printUrl = new URL(popup.url());
@@ -248,9 +244,18 @@ test.describe("Print isolation (Bug 2)", () => {
     await expect(page.locator('[data-testid="print-close"]')).toBeVisible();
     await page.screenshot({ path: path.join(OUT_DIR, "voucher-close-bar.png") });
 
+    // A tab that was not opened by script cannot be closed; the button then
+    // hard-navigates back to the editor (never a router transition).
+    await page.evaluate(() => {
+      (window as NumWindow).__marker = "alive";
+    });
+    const leftPrintRoute = page.waitForEvent("framenavigated", {
+      predicate: (frame) => frame === page.mainFrame(),
+    });
     await page.locator('[data-testid="print-close"]').click();
-    // Close is refused again, so the bar stays and the document is intact.
-    await expect(page.locator('[data-testid="print-close"]')).toBeVisible();
+    await leftPrintRoute;
+    expect(new URL(page.url()).pathname).toBe("/vouchers/1/edit");
+    expect(await page.evaluate(() => (window as NumWindow).__marker)).toBeUndefined();
   });
 
   test("print route Back is a hard navigation (new document, not a SPA route)", async ({ page }) => {

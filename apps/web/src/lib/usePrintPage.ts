@@ -149,6 +149,11 @@ export function usePrintPage({ ready, autoPrint, backTo }: PrintPageOptions): Pr
     };
   }, [autoPrint, ready]);
 
+  /**
+   * The manual close button. `window.close()` is only allowed for windows the
+   * script opened; in the same-tab fallback it is refused, so the button ends
+   * the print view with a hard navigation instead of leaving a dead page.
+   */
   const closeWindow = useCallback(() => {
     clearPrintMark();
     try {
@@ -157,9 +162,12 @@ export function usePrintPage({ ready, autoPrint, backTo }: PrintPageOptions): Pr
       // Ignore.
     }
     window.setTimeout(() => {
-      if (!window.closed) setCloseBlocked(true);
-    }, 200);
-  }, []);
+      if (!window.closed) {
+        setCloseBlocked(true);
+        window.location.assign(backTo);
+      }
+    }, 250);
+  }, [backTo]);
 
   const goBack = useCallback(() => {
     clearPrintMark();

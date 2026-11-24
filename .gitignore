@@ -16,4 +16,5 @@ tests/e2e/__screenshots__/*.png
 backups/
 playwright-report/
 test-results/
+artifacts/
 apps/api/prisma/dev.db

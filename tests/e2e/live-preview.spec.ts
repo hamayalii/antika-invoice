@@ -11,7 +11,7 @@ import path from "node:path";
  * All input happens through the keyboard (`pressSequentially`), never through
  * `fill()`, so React sees real per-character input events.
  */
-const OUT_DIR = path.join("test-results", "live-preview");
+const OUT_DIR = path.join("artifacts", "e2e", "live-preview");
 const USERNAME = process.env.E2E_USERNAME ?? "admin";
 const PASSWORD = process.env.E2E_PASSWORD ?? "ChangeMe!1234";
 
@@ -43,7 +43,10 @@ async function typeKeys(locator: Locator, text: string) {
   await locator.click();
   await locator.press("ControlOrMeta+a");
   await locator.press("Backspace");
-  if (text.length > 0) await locator.pressSequentially(text, { delay: 20 });
+  // Let React commit the clear before the first character is dispatched;
+  // otherwise the first key can be swallowed by the re-render it triggers.
+  await locator.page().waitForTimeout(150);
+  if (text.length > 0) await locator.pressSequentially(text, { delay: 35 });
 }
 
 test.describe("Live preview (Bug 1)", () => {
