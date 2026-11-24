@@ -1,0 +1,99 @@
+/*
+ * Live security preview (Settings → Protection & marking).
+ * One live overview of the real document; pointing at a security control
+ * outlines the matching protected layer. Preview-only: the printed sheets
+ * themselves are untouched.
+ */
+
+.preview-overview {
+  position: relative;
+  overflow: hidden;
+  padding: 5px;
+  border: 2px solid var(--color-brand, #ff5a00);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.preview-overview-sheet {
+  position: relative;
+}
+
+.preview-overview-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Arkan", Tahoma, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+/* ---------------------------------------------------------------------------
+ * Highlight: pulsing orange 2px outline (no glow, no blur).
+ * `--sheet-scale` comes from ScaledSheet, so the outline keeps a real
+ * 2 CSS-pixel thickness even though the sheet is scaled down.
+ * ------------------------------------------------------------------------- */
+.preview-overview[data-highlight="watermark"][data-highlight-active="true"] [data-doc-part="watermark"],
+.preview-overview[data-highlight="guilloche"][data-highlight-active="true"] [data-doc-part="guilloche"],
+.preview-overview[data-highlight="microtext"][data-highlight-active="true"] [data-doc-part="microtext"],
+.preview-overview[data-highlight="qr"][data-highlight-active="true"] [data-doc-part="qr"] {
+  outline: calc(2px / var(--sheet-scale, 1)) solid var(--color-brand, #ff5a00);
+  outline-offset: calc(2px / var(--sheet-scale, 1));
+  border-radius: 6px;
+  animation: preview-pulse 1.2s ease-in-out infinite;
+  z-index: 5;
+}
+
+@keyframes preview-pulse {
+  0%,
+  100% {
+    outline-color: rgba(255, 90, 0, 1);
+  }
+  50% {
+    outline-color: rgba(255, 90, 0, 0.22);
+  }
+}
+
+/* Dashed placeholder shown when the highlighted layer is switched off. */
+.doc-ghost {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  border: calc(2px / var(--sheet-scale, 1)) dashed var(--color-brand, #ff5a00);
+  border-radius: 6px;
+  background: rgba(255, 90, 0, 0.05);
+  animation: preview-pulse-dashed 1.2s ease-in-out infinite;
+}
+
+@keyframes preview-pulse-dashed {
+  0%,
+  100% {
+    border-color: rgba(255, 90, 0, 1);
+  }
+  50% {
+    border-color: rgba(255, 90, 0, 0.25);
+  }
+}
+
+/* i18n label bubble for the highlighted layer. */
+.preview-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  border: 1px solid #fed7aa;
+  border-radius: 999px;
+  background: #fff7ed;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #9a3412;
+}
+
+.preview-bubble .off {
+  color: #b91c1c;
+}
+
+.preview-bubble .on {
+  color: #15803d;
+}

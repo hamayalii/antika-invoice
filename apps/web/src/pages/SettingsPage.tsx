@@ -1,75 +1,77 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
   Building2,
   Hash,
   Image as ImageIcon,
+  RotateCcw,
   Save,
   Settings2,
   ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
-import {
-  settingsSchema,
-  type AppSettings,
-  type DigitsMode,
-  type SecuritySettings,
-  type VoucherPage,
-} from "@antika/shared";
+import { settingsSchema, type AppSettings } from "@antika/shared";
 import { api } from "../lib/api";
 import { useApiErrorMessage, useValidationMessage } from "../lib/i18nHooks";
 import { useAuth } from "../lib/auth";
 import { useToast } from "../components/Toast";
 import { ErrorState, PageHeader, PageLoader } from "../components/Ui";
-import { Logo } from "../components/Brand";
+import { SecurityPreview } from "../features/settings/SecurityPreview";
+import { DirtyBadge, LiveLogo, LiveNumber } from "../features/settings/formBits";
+import {
+  setHighlightedPart,
+  tapHighlightedPart,
+  type DocPart,
+} from "../features/settings/highlight";
+import { toFormValues, type SettingsFormValues } from "../features/settings/types";
 
-interface SettingsFormValues {
-  company: {
-    phones: string[];
-    addressKu: string[];
-    addressAr: string[];
-    taglineKu: string;
-    taglineAr: string;
-  };
-  assets: {
-    logo: string;
-    brandKu: string;
-    brandAr: string;
-    watermark: string;
-  };
-  defaults: {
-    invoiceStart: number;
-    voucherStart: number;
-    advancePercent: number;
-    finalPercent: number;
-    invoiceDigits: DigitsMode;
-    voucherDigits: DigitsMode;
-    voucherPage: VoucherPage;
-    safeMarginMm: number;
-  };
-  security: SecuritySettings;
-}
+const SECURITY_TOGGLES: Array<{
+  key:
+    | "security.watermarkEnabled"
+    | "security.guillocheEnabled"
+    | "security.microtextEnabled"
+    | "security.qrEnabled";
+  part: DocPart;
+  labelKey: string;
+}> = [
+  { key: "security.watermarkEnabled", part: "watermark", labelKey: "settings.watermarkEnabled" },
+  { key: "security.guillocheEnabled", part: "guilloche", labelKey: "settings.guilloche" },
+  { key: "security.microtextEnabled", part: "microtext", labelKey: "settings.microtext" },
+  { key: "security.qrEnabled", part: "qr", labelKey: "settings.qr" },
+];
 
-function toFormValues(settings: AppSettings): SettingsFormValues {
-  const pad = (arr: string[], length = 3) => {
-    const copy = [...arr];
-    while (copy.length < length) copy.push("");
-    return copy.slice(0, Math.max(length, copy.length));
-  };
-  return {
-    company: {
-      phones: pad(settings.company.phones, 3),
-      addressKu: pad(settings.company.addressKu, 3),
-      addressAr: pad(settings.company.addressAr, 3),
-      taglineKu: settings.company.taglineKu,
-      taglineAr: settings.company.taglineAr,
-    },
-    assets: { ...settings.assets },
-    defaults: { ...settings.defaults },
-    security: { ...settings.security },
-  };
+/** Tiny «?» that opens a one-line explanation (never toggles the checkbox). */
+function HelpDot({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex">
+      <button
+        type="button"
+        title={text}
+        aria-label={text}
+        data-testid="settings-help-dot"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen((value) => !value);
+        }}
+        className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[9px] font-extrabold leading-none text-slate-500 transition-colors hover:border-brand-orange hover:text-brand-orange"
+      >
+        ?
+      </button>
+      {open ? (
+        <span
+          role="tooltip"
+          data-testid="settings-help-tip"
+          className="absolute start-0 top-5 z-20 w-60 rounded-lg border border-slate-200 bg-white p-2 text-[11px] font-semibold leading-5 text-slate-600 shadow-md"
+        >
+          {text}
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 export function SettingsPage() {
@@ -89,7 +91,7 @@ export function SettingsPage() {
   });
 
   const form = useForm<SettingsFormValues>();
-  const { register, handleSubmit, reset, watch, setValue } = form;
+  const { register, handleSubmit, reset, setValue, control } = form;
 
   useEffect(() => {
     document.title = `${t("settings.title")} | ${t("app.name")}`;
@@ -99,8 +101,9 @@ export function SettingsPage() {
     if (query.data?.settings) reset(toFormValues(query.data.settings));
   }, [query.data, reset]);
 
-  const advance = Number(watch("defaults.advancePercent") ?? 0);
-  const final = Number(watch("defaults.finalPercent") ?? 0);
+  // Only these two fields re-render the page (the save buttons depend on them).
+  const advance = Number(useWatch({ control, name: "defaults.advancePercent" }) ?? 0);
+  const final = Number(useWatch({ control, name: "defaults.finalPercent" }) ?? 0);
   const sumOk = advance + final === 100;
 
   const digitsOptions = useMemo(
@@ -118,6 +121,11 @@ export function SettingsPage() {
       <ErrorState message={apiError(query.error)} onRetry={() => void query.refetch()} />
     );
   }
+
+  const settings = query.data?.settings;
+  if (!settings) return <PageLoader label={t("common.loading")} />;
+
+  const resetToSaved = () => reset(toFormValues(settings));
 
   const onSubmit = async (values: SettingsFormValues) => {
     setFormError("");
@@ -191,7 +199,7 @@ export function SettingsPage() {
       ) : null}
 
       <form id="settings-form" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <fieldset disabled={fieldsetDisabled} className="space-y-6">
+        <fieldset disabled={fieldsetDisabled} className="min-w-0 space-y-6">
           <section className="card p-5 sm:p-6">
             <div className="mb-5 flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-orange-soft text-brand-orange">
@@ -400,31 +408,41 @@ export function SettingsPage() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              {(
-                [
-                  { key: "security.watermarkEnabled", label: t("settings.watermarkEnabled") },
-                  { key: "security.guillocheEnabled", label: t("settings.guilloche") },
-                  { key: "security.microtextEnabled", label: t("settings.microtext") },
-                  { key: "security.qrEnabled", label: t("settings.qr") },
-                ] as const
-              ).map((item) => (
+              {SECURITY_TOGGLES.map((item) => (
                 <label
                   key={item.key}
                   className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3"
+                  data-testid={`settings-toggle-${item.part}`}
+                  onPointerEnter={() => setHighlightedPart(item.part)}
+                  onPointerLeave={() => setHighlightedPart(null)}
+                  onPointerDown={() => tapHighlightedPart(item.part)}
+                  onFocusCapture={() => setHighlightedPart(item.part)}
+                  onBlurCapture={() => setHighlightedPart(null)}
                 >
-                  <span className="text-sm font-bold text-slate-700">{item.label}</span>
-                  <input type="checkbox" className="h-4 w-4 accent-brand-orange" {...register(item.key)} />
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-sm font-bold text-slate-700">{t(item.labelKey)}</span>
+                    <HelpDot text={t(`settings.preview.help.${item.part}`)} />
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-brand-orange"
+                    {...register(item.key)}
+                  />
                 </label>
               ))}
             </div>
 
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
-              <div>
+              <div
+                onPointerEnter={() => setHighlightedPart("watermark")}
+                onPointerLeave={() => setHighlightedPart(null)}
+                onPointerDown={() => tapHighlightedPart("watermark")}
+                onFocusCapture={() => setHighlightedPart("watermark")}
+                onBlurCapture={() => setHighlightedPart(null)}
+              >
                 <div className="mb-1.5 flex items-center justify-between">
                   <label className="label !mb-0">{t("settings.watermarkOpacity")}</label>
-                  <span className="text-xs font-extrabold text-slate-500">
-                    {Number(watch("security.watermarkOpacity") ?? 0.11).toFixed(2)}
-                  </span>
+                  <LiveNumber control={control} name="security.watermarkOpacity" />
                 </div>
                 <input
                   type="range"
@@ -432,15 +450,20 @@ export function SettingsPage() {
                   max={0.3}
                   step={0.01}
                   className="w-full accent-brand-orange"
+                  data-testid="settings-watermark-opacity"
                   {...register("security.watermarkOpacity", { valueAsNumber: true })}
                 />
               </div>
-              <div>
+              <div
+                onPointerEnter={() => setHighlightedPart("watermark")}
+                onPointerLeave={() => setHighlightedPart(null)}
+                onPointerDown={() => tapHighlightedPart("watermark")}
+                onFocusCapture={() => setHighlightedPart("watermark")}
+                onBlurCapture={() => setHighlightedPart(null)}
+              >
                 <div className="mb-1.5 flex items-center justify-between">
                   <label className="label !mb-0">{t("settings.watermarkScale")}</label>
-                  <span className="text-xs font-extrabold text-slate-500">
-                    {Number(watch("security.watermarkScale") ?? 1).toFixed(1)}×
-                  </span>
+                  <LiveNumber control={control} name="security.watermarkScale" digits={1} suffix="×" />
                 </div>
                 <input
                   type="range"
@@ -448,6 +471,7 @@ export function SettingsPage() {
                   max={2}
                   step={0.1}
                   className="w-full accent-brand-orange"
+                  data-testid="settings-watermark-scale"
                   {...register("security.watermarkScale", { valueAsNumber: true })}
                 />
               </div>
@@ -455,6 +479,13 @@ export function SettingsPage() {
 
             <p className="mt-4 text-[11px] leading-5 text-slate-400">{t("settings.securityNote")}</p>
           </section>
+        </fieldset>
+
+        <div className="mt-6" data-testid="settings-preview-wrap">
+          <SecurityPreview control={control} saved={settings} />
+        </div>
+
+        <fieldset disabled={fieldsetDisabled} className="mt-6 min-w-0 space-y-6">
 
           <section className="card p-5 sm:p-6">
             <div className="mb-5 flex items-center gap-3">
@@ -471,7 +502,12 @@ export function SettingsPage() {
               <div>
                 <label className="label">Logo</label>
                 <div className="flex items-center gap-3">
-                  <Logo className="w-24 rounded border border-slate-200 bg-white p-1" src={watch("assets.logo") || "/assets/logo.svg"} />
+                  <LiveLogo
+                    control={control}
+                    name="assets.logo"
+                    fallback="/assets/logo.svg"
+                    className="w-24 rounded border border-slate-200 bg-white p-1"
+                  />
                   <input className="input" dir="ltr" {...register("assets.logo")} />
                 </div>
               </div>
@@ -491,14 +527,26 @@ export function SettingsPage() {
           </section>
 
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4">
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-400">
               <Settings2 className="h-4 w-4" />
               {t("settings.saved")}
+              <DirtyBadge control={control} />
             </div>
-            <button type="submit" className="btn-primary" disabled={fieldsetDisabled || !sumOk}>
-              <Save className="h-4 w-4" />
-              {saving ? t("common.saving") : t("settings.saveSettings")}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={resetToSaved}
+                className="btn-ghost !px-3 !py-2 text-xs"
+                data-testid="settings-reset"
+              >
+                <RotateCcw className="h-4 w-4" />
+                {t("settings.preview.resetToSaved")}
+              </button>
+              <button type="submit" className="btn-primary" disabled={fieldsetDisabled || !sumOk}>
+                <Save className="h-4 w-4" />
+                {saving ? t("common.saving") : t("settings.saveSettings")}
+              </button>
+            </div>
           </div>
         </fieldset>
       </form>

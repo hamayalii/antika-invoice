@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 /**
  * Scales a fixed-size (mm) print sheet to fit its container while preserving
@@ -33,7 +33,11 @@ export function ScaledSheet({
   }, [widthMm]);
 
   return (
-    <div ref={ref} className={className} style={{ width: "100%" }}>
+    <div
+      ref={ref}
+      className={className}
+      style={{ width: "100%", "--sheet-scale": scale } as CSSProperties}
+    >
       <div
         style={{
           width: `${widthMm * scale}mm`,

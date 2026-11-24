@@ -15,6 +15,7 @@ export function Watermark({ widthMm, opacity }: WatermarkProps) {
   return (
     <svg
       className="doc-watermark"
+      data-doc-part="watermark"
       style={{ width: `${widthMm}mm`, height: `${widthMm * 0.64}mm`, opacity }}
       viewBox="0 0 1000 640"
       aria-hidden="true"
@@ -68,7 +69,7 @@ export interface GuillocheProps {
 /** Fine-line security background generated locally as SVG. */
 export function Guilloche({ id, opacity }: GuillocheProps) {
   return (
-    <svg className="doc-guilloche" style={{ opacity }} aria-hidden="true" focusable="false">
+    <svg className="doc-guilloche" data-doc-part="guilloche" style={{ opacity }} aria-hidden="true" focusable="false">
       <defs>
         <pattern id={id} width="28" height="28" patternUnits="userSpaceOnUse">
           <path
@@ -98,7 +99,7 @@ export function Guilloche({ id, opacity }: GuillocheProps) {
 
 export function Microtext({ text, className }: { text: string; className?: string }) {
   return (
-    <div className={`doc-microtext${className ? ` ${className}` : ""}`} aria-hidden="true">
+    <div className={`doc-microtext${className ? ` ${className}` : ""}`} data-doc-part="microtext" aria-hidden="true">
       {text}
     </div>
   );
@@ -137,7 +138,7 @@ export function VerificationStrip({ code, qrEnabled, qrSide, variant, lang }: Ve
   );
 
   return (
-    <section className={`doc-auth doc-auth--${variant} doc-auth--qr-${qrSide}`} dir="ltr">
+    <section className={`doc-auth doc-auth--${variant} doc-auth--qr-${qrSide}`} data-doc-part="qr" dir="ltr">
       {qrSide === "left" ? (
         <>
           {qr}
