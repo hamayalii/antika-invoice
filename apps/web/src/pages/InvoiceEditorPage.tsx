@@ -850,7 +850,7 @@ export function InvoiceEditorPage() {
         <div className={clsx("min-w-0", mobileTab === "preview" && "hidden lg:block")}>{formPanel}</div>
         <div
           className={clsx(
-            "min-w-0 lg:sticky lg:top-[92px]",
+            "min-w-0 lg:sticky lg:top-[calc(var(--header-h)+1rem)]",
             mobileTab === "form" && "hidden lg:block",
           )}
         >

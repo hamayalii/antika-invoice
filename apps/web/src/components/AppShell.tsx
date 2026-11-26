@@ -11,7 +11,6 @@ import {
   Users,
   X,
   Languages,
-  CircleHelp,
 } from "lucide-react";
 import clsx from "clsx";
 import { useTranslation } from "react-i18next";
@@ -29,7 +28,6 @@ const navItems = [
   { to: "/reports/number-gaps", labelKey: "nav.numberGaps", icon: FileWarning, admin: true },
   { to: "/users", labelKey: "nav.users", icon: Users, admin: true },
   { to: "/settings", labelKey: "nav.settings", icon: Settings, admin: true },
-  { to: "/help", labelKey: "nav.help", icon: CircleHelp },
 ] as const;
 
 export function AppShell() {
@@ -55,17 +53,6 @@ export function AppShell() {
   const sidebar = (
     <div data-sidebar="" className="relative flex h-full flex-col overflow-hidden bg-white">
       <SidebarCrane />
-      <div className="relative z-[1] flex h-[76px] items-center justify-between border-b border-slate-100 px-5">
-        <BrandLockup compact logoSrc="/assets/logo-nav.svg" />
-        <button
-          type="button"
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-          aria-label={t("common.close")}
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
 
       <nav className="relative z-[1] flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {navItems
@@ -121,35 +108,21 @@ export function AppShell() {
   );
 
   return (
-    <div className="flex min-h-screen bg-surface">
-      <aside className="sticky top-0 hidden h-screen w-[272px] shrink-0 border-s border-slate-200 lg:block">
-        {sidebar}
-      </aside>
-
-      {mobileOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button
-            type="button"
-            aria-label={t("common.close")}
-            className="absolute inset-0 h-full w-full bg-slate-900/40 backdrop-blur-sm"
-            onClick={() => setMobileOpen(false)}
-          />
-          <div className="animate-in absolute inset-y-0 start-0 w-[288px] max-w-[86vw] shadow-pop">
-            {sidebar}
-          </div>
+    <div className="min-h-screen bg-surface">
+      <header className="sticky top-0 z-50 flex h-[var(--header-h)] items-center border-b border-slate-200 bg-white">
+        <div className="hidden h-full w-[272px] shrink-0 items-center px-5 lg:flex">
+          <BrandLockup compact logoSrc="/assets/logo-nav.svg" />
         </div>
-      ) : null}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 flex h-[76px] items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 sm:px-6">
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
               className="rounded-lg border border-slate-200 p-2.5 text-slate-600 hover:bg-slate-50 lg:hidden"
-              onClick={() => setMobileOpen(true)}
-              aria-label="menu"
+              onClick={() => setMobileOpen((open) => !open)}
+              aria-label={mobileOpen ? t("common.close") : "menu"}
             >
-              <Menu className="h-5 w-5" />
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
             <div className="flex items-center gap-2 lg:hidden">
               <Logo className="w-10" />
@@ -188,11 +161,17 @@ export function AppShell() {
               </span>
             </div>
           </div>
-        </header>
+        </div>
+      </header>
+
+      <div className="flex items-start">
+        <aside className="sticky top-[var(--header-h)] hidden h-[calc(100vh-var(--header-h))] w-[272px] shrink-0 border-s border-slate-200 lg:block">
+          {sidebar}
+        </aside>
 
         <main
           className={clsx(
-            "relative flex-1 px-4 py-6 sm:px-6 lg:px-8",
+            "relative min-w-0 min-h-[calc(100vh-var(--header-h))] flex-1 px-4 py-6 sm:px-6 lg:px-8",
             isDashboard && "dot-surface",
           )}
         >
@@ -202,6 +181,20 @@ export function AppShell() {
           </div>
         </main>
       </div>
+
+      {mobileOpen ? (
+        <div className="fixed inset-x-0 bottom-0 top-[var(--header-h)] z-40 lg:hidden">
+          <button
+            type="button"
+            aria-label={t("common.close")}
+            className="absolute inset-0 h-full w-full bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+          <div className="animate-in absolute inset-y-0 start-0 w-[288px] max-w-[86vw] shadow-pop">
+            {sidebar}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

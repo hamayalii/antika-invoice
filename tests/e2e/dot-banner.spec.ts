@@ -284,7 +284,7 @@ interface CraneGeometry {
   craneBottom: number;
   craneWidth: number;
   craneHeight: number;
-  headerBottom: number;
+  headerH: number;
   cardTop: number;
   position: string;
   pointer: string;
@@ -303,7 +303,6 @@ async function craneGeometry(page: Page): Promise<CraneGeometry> {
     const host = canvas.closest<HTMLElement>("[data-sidebar]")!;
     const hostBox = host.getBoundingClientRect();
     const canvasBox = canvas.getBoundingClientRect();
-    const header = host.querySelector<HTMLElement>(":scope > div")!;
     const card = host.lastElementChild as HTMLElement;
     const [c0, t0, c1, ground] = (canvas.dataset.box ?? "0,0,0,0").split(",").map(Number);
     const pitchX = 10;
@@ -333,7 +332,7 @@ async function craneGeometry(page: Page): Promise<CraneGeometry> {
       craneBottom,
       craneWidth: craneRight - craneLeft + 1,
       craneHeight: craneBottom - craneTop,
-      headerBottom: header.getBoundingClientRect().bottom - hostBox.top,
+      headerH: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-h")) || 76,
       cardTop: card.getBoundingClientRect().top - hostBox.top,
       position: style.position,
       pointer: style.pointerEvents,
@@ -353,8 +352,8 @@ function expectCraneInside(geometry: CraneGeometry) {
   expect(geometry.ground).toBeLessThan(geometry.rows);
   expect(geometry.ground - geometry.t0, "the crane keeps its 19-row compact box").toBe(CRANE_ROWS_SPAN);
 
-  // Whole machine on screen, under the header, standing on the user card.
-  expect(geometry.craneTop).toBeGreaterThanOrEqual(geometry.headerBottom - 0.5);
+  // Whole machine on screen, standing on the user card.
+  expect(geometry.craneTop).toBeGreaterThanOrEqual(0);
   expect(
     geometry.craneBottom,
     "the ground line may tuck at most half a row behind the card",
@@ -365,7 +364,9 @@ function expectCraneInside(geometry: CraneGeometry) {
   ).toBeLessThanOrEqual(6.5);
   expect(geometry.craneLeft).toBeGreaterThanOrEqual(0);
   expect(geometry.craneRight).toBeLessThanOrEqual(geometry.hostWidth);
-  expect(geometry.craneHeight / geometry.hostHeight, "the crane stays compact").toBeLessThanOrEqual(0.46);
+  // The sidebar lives below the full-width header, so compare the crane with
+  // the full sidebar-plus-header column it used to occupy.
+  expect(geometry.craneHeight / (geometry.hostHeight + geometry.headerH), "the crane stays compact").toBeLessThanOrEqual(0.46);
   expect(
     Math.abs(geometry.craneLeft - (geometry.hostWidth - geometry.craneRight)),
     "the crane box is centred in the sidebar",
@@ -919,9 +920,7 @@ test.describe("dashboard background: flat heatmap and one compact sidebar crane"
 
     const geometry = await craneGeometry(page);
     expectCraneInside(geometry);
-    // The user card and menu keep their exact desktop position.
-    expect(geometry.headerBottom).toBeGreaterThanOrEqual(75.5);
-    expect(geometry.headerBottom).toBeLessThanOrEqual(76.5);
+    // The user card keeps its exact desktop position.
     expect(
       Math.abs(geometry.craneBottom - geometry.cardTop),
       "the crane sits on the user card",
@@ -1200,9 +1199,11 @@ test.describe("dashboard background: flat heatmap and one compact sidebar crane"
         bottom: box.bottom,
         viewport: window.innerHeight,
         scrollY: window.scrollY,
+        headerTop: document.querySelector("header")!.getBoundingClientRect().top,
       };
     }, CANVAS);
     expect(scrolled.scrollY).toBeGreaterThan(0);
+    expect(scrolled.headerTop).toBe(0);
     expect(scrolled.top).toBeLessThanOrEqual(1);
     expect(scrolled.bottom).toBeGreaterThanOrEqual(scrolled.viewport - 1);
     await page.screenshot({ path: path.join(OUT_DIR, "scrolled-mobile-390.png") });

@@ -8,6 +8,8 @@
     --color-brand-dark: #e04e00;
     --color-brand-light: #ff7a33;
     --color-brand-soft: #fff0e6;
+    /* Single source of truth for the app header height (shell + drawer). */
+    --header-h: 76px;
   }
 
   html {
